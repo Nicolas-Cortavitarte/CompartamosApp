@@ -81,3 +81,8 @@ yarn-error.log
 
 # Configuración local de Java para React Native
 /android-local.cmd
+
+# .env
+.env
+.env.local
+.env.*.local
