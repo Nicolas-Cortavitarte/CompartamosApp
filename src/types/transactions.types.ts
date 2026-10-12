@@ -1,4 +1,5 @@
 export type TransactionType = 'INCOME' | 'EXPENSE';
+export type InsightSeverity = 'info' | 'warning' | 'alert';
 
 export interface Category {
   id: string;
@@ -25,4 +26,12 @@ export interface CreateTransaction {
   amount: number;
   description?: string | null;
   date?: string;
+}
+
+export interface Insight {
+  id: string;
+  type: string;         // Ej: 'budget_warning', 'goal_reached'
+  title: string;
+  message: string;
+  severity: InsightSeverity;
 }
