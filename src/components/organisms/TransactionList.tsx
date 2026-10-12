@@ -1,8 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -15,10 +11,7 @@ import {
 
 import { colors } from '../../theme/colors';
 
-import type {
-  Category,
-  Transaction,
-} from '../../types/transactions.types';
+import type { Category, Transaction } from '../../types/transactions.types';
 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,12 +29,19 @@ import { TransactionEmptyState } from '../molecules/TransactionEmptyState';
 
 type TransactionFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 
-export function TransactionList() {
+interface TransactionListProps {
+  limit?: number;
+  hideFilters?: boolean;
+}
+
+export function TransactionList({
+  limit,
+  hideFilters = false,
+}: TransactionListProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  const navigation =
-    useNavigation<BottomTabNavigationProp<RootTabParamList>>();
+  const navigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -84,22 +84,17 @@ export function TransactionList() {
     loadTransactions();
   }, [loadTransactions]);
 
-
   useEffect(() => {
-    const parentNavigation = navigation.getParent<
-      NativeStackNavigationProp<RootStackParamList>
-    >();
+    const parentNavigation =
+      navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
 
     if (!parentNavigation) {
       return;
     }
 
-    const unsubscribe = parentNavigation.addListener(
-      'focus',
-      () => {
-        void loadTransactions();
-      },
-    );
+    const unsubscribe = parentNavigation.addListener('focus', () => {
+      void loadTransactions();
+    });
 
     return unsubscribe;
   }, [navigation, loadTransactions]);
@@ -110,27 +105,26 @@ export function TransactionList() {
   }
 
   function getCategoryName(categoryId: string): string {
-    const category = categories.find(
-      item => item.id === categoryId,
-    );
+    const category = categories.find(item => item.id === categoryId);
 
     return category?.name ?? 'Sin categoría';
   }
 
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesType =
-      filter === 'ALL' || transaction.type === filter;
+    const matchesType = filter === 'ALL' || transaction.type === filter;
 
     const matchesCategory =
-      !selectedCategoryId ||
-      transaction.category_id === selectedCategoryId;
+      !selectedCategoryId || transaction.category_id === selectedCategoryId;
 
     const matchesMonth =
-      !selectedMonth ||
-      transaction.date.startsWith(selectedMonth);
+      !selectedMonth || transaction.date.startsWith(selectedMonth);
 
     return matchesType && matchesCategory && matchesMonth;
   });
+
+  const displayTransactions = limit
+    ? filteredTransactions.slice(0, limit)
+    : filteredTransactions;
 
   const groupedTransactions = Object.entries(
     filteredTransactions.reduce<Record<string, Transaction[]>>(
@@ -157,127 +151,161 @@ export function TransactionList() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-        />
-        <Text style={styles.helper}>
-          Cargando movimientos...
-        </Text>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.helper}>Cargando movimientos...</Text>
       </View>
     );
   }
 
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        Mis movimientos
-      </Text>
+      {!hideFilters && (
+        <>
+          <Text style={styles.title}>Mis movimientos</Text>
 
-      <Text style={styles.subtitle}>
-        Cada ingreso y gasto, en un solo lugar.
-      </Text>
+          <Text style={styles.subtitle}>
+            Cada ingreso y gasto, en un solo lugar.
+          </Text>
 
-      <View style={styles.filters}>
-        {([
-          { value: 'ALL', label: 'Todos' },
-          { value: 'INCOME', label: 'Ingresos' },
-          { value: 'EXPENSE', label: 'Gastos' },
-        ] as const).map(option => {
-          const selected = filter === option.value;
+          <View style={styles.filters}>
+            {(
+              [
+                { value: 'ALL', label: 'Todos' },
+                { value: 'INCOME', label: 'Ingresos' },
+                { value: 'EXPENSE', label: 'Gastos' },
+              ] as const
+            ).map(option => {
+              const selected = filter === option.value;
 
-          return (
-            <Pressable
-              key={option.value}
-              onPress={() => { setFilter(option.value); setSelectedCategoryId('') }}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              style={[
-                styles.filterButton,
-                selected && styles.filterSelected,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  selected && styles.filterTextSelected,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+              return (
+                <Pressable
+                  key={option.value}
+                  onPress={() => {
+                    setFilter(option.value);
+                    setSelectedCategoryId('');
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  style={[
+                    styles.filterButton,
+                    selected && styles.filterSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      selected && styles.filterTextSelected,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-      <TransactionFilters
-        categories={categories}
-        type={filter}
-        selectedCategoryId={selectedCategoryId}
-        onCategoryChange={setSelectedCategoryId}
-        selectedMonth={selectedMonth}
-        onMonthChange={setSelectedMonth}
-      />
+          <TransactionFilters
+            categories={categories}
+            type={filter}
+            selectedCategoryId={selectedCategoryId}
+            onCategoryChange={setSelectedCategoryId}
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+          />
+        </>
+      )}
 
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.error}>{error}</Text>
 
           <Pressable onPress={loadTransactions}>
-            <Text style={styles.retry}>
-              Reintentar
-            </Text>
+            <Text style={styles.retry}>Reintentar</Text>
           </Pressable>
         </View>
       ) : null}
 
-      <SectionList
-        sections={groupedTransactions}
-        keyExtractor={item => item.id}
-        renderSectionHeader={({ section }) => (
-          <Text style={styles.sectionHeader}>
-            {formatSectionDate(section.title)}
-          </Text>
-        )}
-        renderItem={({ item }) => (
-          <TransactionItem
-            transaction={item}
-            categoryName={getCategoryName(item.category_id)}
-            onPress={() => {
-              const parentNavigation = navigation.getParent<
-                NativeStackNavigationProp<RootStackParamList>
-              >();
-
-              parentNavigation?.navigate('TransactionDetail', {
-                transactionId: item.id,
-              });
-            }}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => (
-          <View style={styles.separator} />
-        )}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        stickySectionHeadersEnabled={false}
-        ListEmptyComponent={
-          !error ? (
+      {limit ? (
+        <View>
+          {displayTransactions.length === 0 && !error ? (
             <TransactionEmptyState
               filtered={transactions.length > 0}
-              onAddPress={() => navigation.navigate('Agregar')}
+              onAddPress={() => {
+                navigation.navigate('Agregar');
+              }}
             />
-          ) : undefined
-        }
-      />
+          ) : (
+            displayTransactions.map((item, index) => (
+              <View key={item.id}>
+                <TransactionItem
+                  transaction={item}
+                  categoryName={getCategoryName(item.category_id)}
+                  onPress={() => {
+                    const parentNavigation =
+                      navigation.getParent<
+                        NativeStackNavigationProp<RootStackParamList>
+                      >();
+
+                    parentNavigation?.navigate('TransactionDetail', {
+                      transactionId: item.id,
+                    });
+                  }}
+                />
+                {index < displayTransactions.length - 1 && (
+                  <View style={styles.separator} />
+                )}
+              </View>
+            ))
+          )}
+        </View>
+      ) : (
+        <SectionList
+          sections={groupedTransactions}
+          keyExtractor={item => item.id}
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.sectionHeader}>
+              {formatSectionDate(section.title)}
+            </Text>
+          )}
+          renderItem={({ item }) => (
+            <TransactionItem
+              transaction={item}
+              categoryName={getCategoryName(item.category_id)}
+              onPress={() => {
+                const parentNavigation =
+                  navigation.getParent<
+                    NativeStackNavigationProp<RootStackParamList>
+                  >();
+
+                parentNavigation?.navigate('TransactionDetail', {
+                  transactionId: item.id,
+                });
+              }}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          stickySectionHeadersEnabled={false}
+          ListEmptyComponent={
+            !error ? (
+              <TransactionEmptyState
+                filtered={transactions.length > 0}
+                onAddPress={() => {
+                  navigation.navigate('Agregar');
+                }}
+              />
+            ) : undefined
+          }
+        />
+      )}
     </View>
   );
 }
 
 function formatSectionDate(dateString: string): string {
   const [year, month, day] = dateString.split('-').map(Number);
-
   const date = new Date(year, month - 1, day);
 
   const today = new Date();
@@ -308,51 +336,23 @@ function formatSectionDate(dateString: string): string {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    width: '100%',
   },
   center: {
-    flex: 1,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+  },
+  helper: {
+    marginTop: 8,
+    color: colors.textSecondary,
+    fontSize: 14,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
-  },
-  listContent: {
-    paddingBottom: 24,
-    flexGrow: 1,
-  },
-  separator: {
-    height: 12,
-  },
-  helper: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  errorContainer: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: colors.errorBackground,
-    marginBottom: 16,
-  },
-  error: {
-    fontSize: 13,
-    color: colors.error,
-  },
-  retry: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-    marginTop: 8,
   },
   subtitle: {
     fontSize: 14,
@@ -387,11 +387,34 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontWeight: '600',
   },
+  errorContainer: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: colors.errorBackground,
+    marginBottom: 16,
+  },
+  error: {
+    fontSize: 13,
+    color: colors.error,
+  },
+  retry: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+    marginTop: 8,
+  },
+  listContent: {
+    paddingBottom: 24,
+    flexGrow: 1,
+  },
   sectionHeader: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.text,
     marginTop: 16,
     marginBottom: 12,
+  },
+  separator: {
+    height: 12,
   },
 });
