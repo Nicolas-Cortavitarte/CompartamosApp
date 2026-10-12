@@ -59,11 +59,11 @@ export function HomeScreen() {
 
   // Cálculo preciso de Ingresos, Gastos y Balance sumando datos reales de Supabase
   const totalIncome = transactions
-    .filter(t => t.type === 'INCOME')
+    .filter(t => t.type?.toUpperCase() === 'INCOME')
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const totalExpense = transactions
-    .filter(t => t.type === 'EXPENSE')
+    .filter(t => t.type?.toUpperCase() === 'EXPENSE')
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const currentBalance = totalIncome - totalExpense;
@@ -185,12 +185,17 @@ export function HomeScreen() {
       {/* Sección Últimos Movimientos */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Últimos movimientos</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Movimientos')}>
+        <TouchableOpacity
+          onPress={() => {
+            // Navega directamente a la pestaña 'Movimientos'
+            (navigation as any).navigate('Movimientos');
+          }}
+        >
           <Text style={styles.seeAllText}>Ver todos</Text>
         </TouchableOpacity>
       </View>
 
-      <RecentTransactions />
+      <RecentTransactions transactions={transactions} />
     </ScrollView>
   );
 }

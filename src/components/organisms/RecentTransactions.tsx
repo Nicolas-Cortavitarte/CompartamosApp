@@ -1,6 +1,15 @@
+// RecentTransactions.tsx
 import React from 'react';
 import { TransactionList } from './TransactionList';
+import type { Transaction } from '../../types/transactions.types';
 
-export function RecentTransactions() {
-  return <TransactionList limit={3} hideFilters={true} />;
+interface RecentTransactionsProps {
+  transactions?: Transaction[];
+}
+
+export function RecentTransactions({ transactions }: RecentTransactionsProps) {
+  // Le pasamos las transacciones cargadas a TransactionList
+  return (
+    <TransactionList transactions={transactions} limit={3} hideFilters={true} />
+  );
 }

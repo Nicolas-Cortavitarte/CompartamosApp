@@ -32,11 +32,13 @@ type TransactionFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 interface TransactionListProps {
   limit?: number;
   hideFilters?: boolean;
+  transactions?: Transaction[];
 }
 
 export function TransactionList({
   limit,
   hideFilters = false,
+  transactions: propTransactions,
 }: TransactionListProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -56,6 +58,8 @@ export function TransactionList({
 
     return `${year}-${month}`;
   });
+
+  const activeTransactions = propTransactions ?? transactions;
 
   const loadTransactions = useCallback(async () => {
     try {
@@ -81,8 +85,13 @@ export function TransactionList({
   }, []);
 
   useEffect(() => {
-    loadTransactions();
-  }, [loadTransactions]);
+    if (!propTransactions) {
+      void loadTransactions();
+    } else {
+      getCategories().then(setCategories).catch(console.error);
+      setLoading(false);
+    }
+  }, [loadTransactions, propTransactions]);
 
   useEffect(() => {
     const parentNavigation =
@@ -110,14 +119,17 @@ export function TransactionList({
     return category?.name ?? 'Sin categoría';
   }
 
-  const filteredTransactions = transactions.filter(transaction => {
-    const matchesType = filter === 'ALL' || transaction.type === filter;
+  const filteredTransactions = activeTransactions.filter(transaction => {
+    const itemType = String(transaction.type || '').toUpperCase();
+    const currentFilter = filter.toUpperCase();
+    const matchesType = currentFilter === 'ALL' || itemType === currentFilter;
 
     const matchesCategory =
       !selectedCategoryId || transaction.category_id === selectedCategoryId;
-
-    const matchesMonth =
-      !selectedMonth || transaction.date.startsWith(selectedMonth);
+    const transactionMonth = transaction.date
+      ? transaction.date.slice(0, 7)
+      : '';
+    const matchesMonth = !selectedMonth || transactionMonth === selectedMonth;
 
     return matchesType && matchesCategory && matchesMonth;
   });

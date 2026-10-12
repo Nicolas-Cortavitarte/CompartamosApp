@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { useNavigation } from '@react-navigation/native';
@@ -26,8 +27,15 @@ export function SummaryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [, setError] = useState('');
 
-  // Selector de mes (por defecto Octubre 2026 o el mes actual)
-  const [selectedMonth] = useState('2026-10');
+  // Selector de mes dinámico (por defecto el mes actual en formato YYYY-MM)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
+
+  const [isMonthPickerVisible, setIsMonthPickerVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -67,18 +75,36 @@ export function SummaryScreen() {
     await loadData();
   };
 
-  // Filtrar transacciones por el mes seleccionado
-  const monthlyTransactions = transactions.filter(t =>
-    t.date.startsWith(selectedMonth),
-  );
+  // Generar lista de los últimos 6 meses
+  const availableMonths = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
 
-  // Cálculos principales
+  // Helper para formatear '2026-10' a 'Octubre 2026'
+  const formatMonthLabel = (yyyyMm: string) => {
+    const [year, month] = yyyyMm.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    const monthName = date.toLocaleDateString('es-PE', { month: 'long' });
+    return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
+  };
+
+  // Filtrar transacciones por el mes seleccionado
+  const monthlyTransactions = transactions.filter(t => {
+    const dateString = String(t.date || '');
+    return dateString.startsWith(selectedMonth);
+  });
+
+  // Cálculos principales con tolerancia a mayúsculas/minúsculas
   const totalIncome = monthlyTransactions
-    .filter(t => t.type === 'INCOME')
+    .filter(t => t.type?.toUpperCase() === 'INCOME')
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const totalExpense = monthlyTransactions
-    .filter(t => t.type === 'EXPENSE')
+    .filter(t => t.type?.toUpperCase() === 'EXPENSE')
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const balance = totalIncome - totalExpense;
@@ -86,7 +112,7 @@ export function SummaryScreen() {
 
   // Agrupación de gastos por categoría
   const expenseTransactions = monthlyTransactions.filter(
-    t => t.type === 'EXPENSE',
+    t => t.type?.toUpperCase() === 'EXPENSE',
   );
 
   const categoryTotals = categories
@@ -137,14 +163,47 @@ export function SummaryScreen() {
         <Text style={styles.subtitle}>Entiende cómo se mueve tu dinero.</Text>
       </View>
 
-      {/* Selector de periodo */}
-      <View style={styles.periodSelector}>
+      {/* Selector de periodo interactiv con menú */}
+      <TouchableOpacity
+        style={styles.periodSelector}
+        onPress={() => setIsMonthPickerVisible(!isMonthPickerVisible)}
+      >
         <View style={styles.periodRow}>
           <Text style={styles.periodIcon}>📅</Text>
-          <Text style={styles.periodLabel}>Este mes</Text>
+          <Text style={styles.periodLabel}>Mes seleccionado</Text>
         </View>
-        <Text style={styles.periodDropdown}>Octubre 2026 ▾</Text>
-      </View>
+        <Text style={styles.periodDropdown}>
+          {formatMonthLabel(selectedMonth)} ▾
+        </Text>
+      </TouchableOpacity>
+
+      {/* Lista desplegable de meses */}
+      {isMonthPickerVisible && (
+        <View style={styles.monthPickerContainer}>
+          {availableMonths.map(m => (
+            <TouchableOpacity
+              key={m}
+              style={[
+                styles.monthPickerOption,
+                m === selectedMonth && styles.monthPickerOptionSelected,
+              ]}
+              onPress={() => {
+                setSelectedMonth(m);
+                setIsMonthPickerVisible(false);
+              }}
+            >
+              <Text
+                style={[
+                  styles.monthPickerText,
+                  m === selectedMonth && styles.monthPickerTextSelected,
+                ]}
+              >
+                {formatMonthLabel(m)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Tarjetas de Ingresos y Gastos */}
       <View style={styles.cardsRow}>
@@ -172,7 +231,9 @@ export function SummaryScreen() {
       {/* Progreso del Mes */}
       <View style={styles.monthSummaryCard}>
         <View style={styles.monthHeaderRow}>
-          <Text style={styles.monthTitle}>Octubre 2026</Text>
+          <Text style={styles.monthTitle}>
+            {formatMonthLabel(selectedMonth)}
+          </Text>
           <Text style={styles.monthCurrency}>En soles · S/</Text>
         </View>
 
@@ -211,7 +272,7 @@ export function SummaryScreen() {
       <View style={styles.categoriesCard}>
         {categoryTotals.length === 0 ? (
           <Text style={styles.emptyCategories}>
-            No hay gastos registrados este mes.
+            No hay gastos registrados en este mes.
           </Text>
         ) : (
           categoryTotals.map((cat, index) => (
@@ -224,7 +285,7 @@ export function SummaryScreen() {
                 <Text style={styles.categoryAmountText}>
                   S/ {cat.total.toFixed(2)}{' '}
                   <Text style={styles.categoryPercentageText}>
-                    {cat.percentage}%
+                    ({cat.percentage}%)
                   </Text>
                 </Text>
               </View>
@@ -244,7 +305,6 @@ export function SummaryScreen() {
       {/* Sección: Insights del mes */}
       <Text style={styles.sectionTitle}>Insights del mes</Text>
 
-      {/* Insight 1: Alerta de gastos */}
       <View
         style={[
           styles.insightBox,
@@ -262,7 +322,6 @@ export function SummaryScreen() {
         </Text>
       </View>
 
-      {/* Insight 2: Categoría principal */}
       {topCategory && (
         <View style={styles.insightBoxNeutral}>
           <Text style={styles.insightTitleNeutral}>
@@ -272,7 +331,6 @@ export function SummaryScreen() {
         </View>
       )}
 
-      {/* Insight 3: Estado de ingresos */}
       <View style={styles.insightBoxSuccess}>
         <Text style={styles.insightTitleSuccess}>
           ✓ Tus ingresos siguen cubriendo tus egresos con éxito.
@@ -326,7 +384,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   periodRow: {
     flexDirection: 'row',
@@ -344,6 +402,31 @@ const styles = StyleSheet.create({
   periodDropdown: {
     fontSize: 14,
     fontWeight: '600',
+    color: colors.primary,
+  },
+  monthPickerContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  monthPickerOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  monthPickerOptionSelected: {
+    backgroundColor: colors.primary + '15',
+  },
+  monthPickerText: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  monthPickerTextSelected: {
+    fontWeight: 'bold',
     color: colors.primary,
   },
   cardsRow: {
