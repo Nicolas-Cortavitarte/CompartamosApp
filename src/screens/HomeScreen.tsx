@@ -20,6 +20,7 @@ import { getTransactions } from '../services/transactions.service';
 import type { Transaction } from '../types/transactions.types';
 import { FinancialMetricCard } from '../components/molecules/FinancialMetricCard';
 import { RecentTransactions } from '../components/organisms/RecentTransactions';
+import { SafeAreaView } from 'react-native-safe-area-context';
 export function HomeScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -80,10 +81,10 @@ export function HomeScreen() {
     totalIncome === 0
       ? 'Aún no registras ingresos este mes. Comienza a registrar tus movimientos.'
       : isHighExpense
-      ? `Tus egresos representan el ${Math.round(
+        ? `Tus egresos representan el ${Math.round(
           expenseRatio,
         )}% de tus ingresos. Vigila tus gastos de cerca.`
-      : `Tus egresos están bajo control (${Math.round(
+        : `Tus egresos están bajo control (${Math.round(
           expenseRatio,
         )}% de tus ingresos).`;
 
@@ -97,110 +98,119 @@ export function HomeScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={[colors.primary]}
-        />
-      }
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top', 'bottom']}
     >
-      {/* Encabezado superior */}
-      <View style={styles.header}>
-        <Text style={styles.topInfo}>MI NEGOCIO / OCTUBRE 2026</Text>
-        <Text style={styles.title}>Hola 👋</Text>
-        <Text style={styles.subtitle}>Así va tu negocio este mes</Text>
-      </View>
-
-      {/* Tarjeta principal de Balance */}
-      <BalanceCard
-        balance={currentBalance}
-        income={totalIncome}
-        expense={totalExpense}
-      />
-
-      {/* Botones separados de Ingresos y Gastos (Estilo Figma) */}
-      <View style={styles.summaryButtonsRow}>
-        <FinancialMetricCard
-          label="↑ Ingresos"
-          amount={totalIncome}
-          type="INCOME"
-        />
-        <FinancialMetricCard
-          label="↓ Gastos"
-          amount={totalExpense}
-          type="EXPENSE"
-        />
-      </View>
-
-      {/* Sección Resumen del mes */}
-      <Text style={styles.sectionMainTitle}>Resumen del mes</Text>
-      <View style={styles.monthSummaryCard}>
-        <View style={styles.monthHeaderRow}>
-          <Text style={styles.monthTitle}>Octubre 2026</Text>
-          <Text style={styles.monthCurrency}>En soles · S/</Text>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        {/* Encabezado superior */}
+        <View style={styles.header}>
+          <Text style={styles.topInfo}>MI NEGOCIO / OCTUBRE 2026</Text>
+          <Text style={styles.title}>Hola 👋</Text>
+          <Text style={styles.subtitle}>Así va tu negocio este mes</Text>
         </View>
 
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryItemLabel}>Ingresos</Text>
-          <Text style={styles.summaryItemValue}>
-            S/ {totalIncome.toFixed(2)}
-          </Text>
-        </View>
-        <View style={styles.progressBarBackground}>
-          <View
-            style={[
-              styles.progressBarFillIncome,
-              { width: `${Math.min(100, 100)}%` },
-            ]}
+        {/* Tarjeta principal de Balance */}
+        <BalanceCard
+          balance={currentBalance}
+          income={totalIncome}
+          expense={totalExpense}
+        />
+
+        {/* Botones separados de Ingresos y Gastos (Estilo Figma) */}
+        <View style={styles.summaryButtonsRow}>
+          <FinancialMetricCard
+            label="↑ Ingresos"
+            amount={totalIncome}
+            type="INCOME"
+          />
+          <FinancialMetricCard
+            label="↓ Gastos"
+            amount={totalExpense}
+            type="EXPENSE"
           />
         </View>
 
-        <View style={[styles.summaryRow, { marginTop: 12 }]}>
-          <Text style={styles.summaryItemLabel}>Gastos</Text>
-          <Text style={styles.summaryItemValue}>
-            S/ {totalExpense.toFixed(2)}
+        {/* Sección Resumen del mes */}
+        <Text style={styles.sectionMainTitle}>Resumen del mes</Text>
+        <View style={styles.monthSummaryCard}>
+          <View style={styles.monthHeaderRow}>
+            <Text style={styles.monthTitle}>Octubre 2026</Text>
+            <Text style={styles.monthCurrency}>En soles · S/</Text>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryItemLabel}>Ingresos</Text>
+            <Text style={styles.summaryItemValue}>
+              S/ {totalIncome.toFixed(2)}
+            </Text>
+          </View>
+          <View style={styles.progressBarBackground}>
+            <View
+              style={[
+                styles.progressBarFillIncome,
+                { width: `${Math.min(100, 100)}%` },
+              ]}
+            />
+          </View>
+
+          <View style={[styles.summaryRow, { marginTop: 12 }]}>
+            <Text style={styles.summaryItemLabel}>Gastos</Text>
+            <Text style={styles.summaryItemValue}>
+              S/ {totalExpense.toFixed(2)}
+            </Text>
+          </View>
+          <View style={styles.progressBarBackground}>
+            <View
+              style={[
+                styles.progressBarFillExpense,
+                { width: `${Math.min(100, expenseRatio)}%` },
+              ]}
+            />
+          </View>
+
+          <Text style={styles.summaryFooterText}>
+            Tus gastos equivalen al {Math.round(expenseRatio)}% de tus ingresos.
           </Text>
         </View>
-        <View style={styles.progressBarBackground}>
-          <View
-            style={[
-              styles.progressBarFillExpense,
-              { width: `${Math.min(100, expenseRatio)}%` },
-            ]}
-          />
+
+        {/* Tarjeta de Alerta / Insight */}
+        <InsightCard title={insightTitle} message={insightMessage} />
+
+        {/* Sección Últimos Movimientos */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Últimos movimientos</Text>
+          <TouchableOpacity
+            onPress={() => {
+              // Navega directamente a la pestaña 'Movimientos'
+              (navigation as any).navigate('Movimientos');
+            }}
+          >
+            <Text style={styles.seeAllText}>Ver todos</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.summaryFooterText}>
-          Tus gastos equivalen al {Math.round(expenseRatio)}% de tus ingresos.
-        </Text>
-      </View>
-
-      {/* Tarjeta de Alerta / Insight */}
-      <InsightCard title={insightTitle} message={insightMessage} />
-
-      {/* Sección Últimos Movimientos */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Últimos movimientos</Text>
-        <TouchableOpacity
-          onPress={() => {
-            // Navega directamente a la pestaña 'Movimientos'
-            (navigation as any).navigate('Movimientos');
-          }}
-        >
-          <Text style={styles.seeAllText}>Ver todos</Text>
-        </TouchableOpacity>
-      </View>
-
-      <RecentTransactions transactions={transactions} />
-    </ScrollView>
+        <RecentTransactions transactions={transactions} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

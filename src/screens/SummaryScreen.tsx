@@ -16,6 +16,7 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 import { getTransactions } from '../services/transactions.service';
 import { getCategories } from '../services/categories.service';
 import type { Transaction, Category } from '../types/transactions.types';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function SummaryScreen() {
   const navigation =
@@ -146,201 +147,210 @@ export function SummaryScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={[colors.primary]}
-        />
-      }
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top', 'bottom']}
     >
-      {/* Encabezado */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Resumen</Text>
-        <Text style={styles.subtitle}>Entiende cómo se mueve tu dinero.</Text>
-      </View>
-
-      {/* Selector de periodo interactiv con menú */}
-      <TouchableOpacity
-        style={styles.periodSelector}
-        onPress={() => setIsMonthPickerVisible(!isMonthPickerVisible)}
-      >
-        <View style={styles.periodRow}>
-          <Text style={styles.periodIcon}>📅</Text>
-          <Text style={styles.periodLabel}>Mes seleccionado</Text>
-        </View>
-        <Text style={styles.periodDropdown}>
-          {formatMonthLabel(selectedMonth)} ▾
-        </Text>
-      </TouchableOpacity>
-
-      {/* Lista desplegable de meses */}
-      {isMonthPickerVisible && (
-        <View style={styles.monthPickerContainer}>
-          {availableMonths.map(m => (
-            <TouchableOpacity
-              key={m}
-              style={[
-                styles.monthPickerOption,
-                m === selectedMonth && styles.monthPickerOptionSelected,
-              ]}
-              onPress={() => {
-                setSelectedMonth(m);
-                setIsMonthPickerVisible(false);
-              }}
-            >
-              <Text
-                style={[
-                  styles.monthPickerText,
-                  m === selectedMonth && styles.monthPickerTextSelected,
-                ]}
-              >
-                {formatMonthLabel(m)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* Tarjetas de Ingresos y Gastos */}
-      <View style={styles.cardsRow}>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>↑ Ingresos</Text>
-          <Text style={[styles.metricValue, { color: '#D97706' }]}>
-            S/ {totalIncome.toFixed(2)}
-          </Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>↓ Gastos</Text>
-          <Text style={[styles.metricValue, { color: '#E11D48' }]}>
-            S/ {totalExpense.toFixed(2)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Tarjeta de Balance General */}
-      <View style={styles.balanceContainer}>
-        <Text style={styles.balanceTitle}>Balance</Text>
-        <Text style={styles.balanceValue}>S/ {balance.toFixed(2)}</Text>
-      </View>
-
-      {/* Progreso del Mes */}
-      <View style={styles.monthSummaryCard}>
-        <View style={styles.monthHeaderRow}>
-          <Text style={styles.monthTitle}>
-            {formatMonthLabel(selectedMonth)}
-          </Text>
-          <Text style={styles.monthCurrency}>En soles · S/</Text>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryItemLabel}>Ingresos</Text>
-          <Text style={styles.summaryItemValue}>
-            S/ {totalIncome.toFixed(2)}
-          </Text>
-        </View>
-        <View style={styles.progressBarBackground}>
-          <View style={[styles.progressBarFillIncome, { width: '100%' }]} />
-        </View>
-
-        <View style={[styles.summaryRow, { marginTop: 12 }]}>
-          <Text style={styles.summaryItemLabel}>Gastos</Text>
-          <Text style={styles.summaryItemValue}>
-            S/ {totalExpense.toFixed(2)}
-          </Text>
-        </View>
-        <View style={styles.progressBarBackground}>
-          <View
-            style={[
-              styles.progressBarFillExpense,
-              { width: `${Math.min(100, expenseRatio)}%` },
-            ]}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
           />
-        </View>
-
-        <Text style={styles.summaryFooterText}>
-          Tus gastos equivalen al {Math.round(expenseRatio)}% de tus ingresos.
-        </Text>
-      </View>
-
-      {/* Sección: ¿En qué estás gastando? */}
-      <Text style={styles.sectionTitle}>¿En qué estás gastando?</Text>
-      <View style={styles.categoriesCard}>
-        {categoryTotals.length === 0 ? (
-          <Text style={styles.emptyCategories}>
-            No hay gastos registrados en este mes.
-          </Text>
-        ) : (
-          categoryTotals.map((cat, index) => (
-            <View
-              key={cat.id}
-              style={[styles.categoryItem, index > 0 && styles.categoryDivider]}
-            >
-              <View style={styles.categoryRowTop}>
-                <Text style={styles.categoryNameText}>📦 {cat.name}</Text>
-                <Text style={styles.categoryAmountText}>
-                  S/ {cat.total.toFixed(2)}{' '}
-                  <Text style={styles.categoryPercentageText}>
-                    ({cat.percentage}%)
-                  </Text>
-                </Text>
-              </View>
-              <View style={styles.progressBarBackground}>
-                <View
-                  style={[
-                    styles.progressBarFillExpense,
-                    { width: `${cat.percentage}%` },
-                  ]}
-                />
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* Sección: Insights del mes */}
-      <Text style={styles.sectionTitle}>Insights del mes</Text>
-
-      <View
-        style={[
-          styles.insightBox,
-          expenseRatio >= 80 ? styles.insightWarning : styles.insightNormal,
-        ]}
+        }
       >
-        <Text style={styles.insightTitleText}>
-          {expenseRatio >= 80
-            ? '⚠️ Tus gastos están aumentando significativamente.'
-            : '✅ Tus gastos están bajo control.'}
-        </Text>
-        <Text style={styles.insightBodyText}>
-          Este mes tus egresos representan el {Math.round(expenseRatio)}% de tus
-          ingresos totales.
-        </Text>
-      </View>
+        {/* Encabezado */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Resumen</Text>
+          <Text style={styles.subtitle}>Entiende cómo se mueve tu dinero.</Text>
+        </View>
 
-      {topCategory && (
-        <View style={styles.insightBoxNeutral}>
-          <Text style={styles.insightTitleNeutral}>
-            💡 {topCategory.name} representa el {topCategory.percentage}% de
-            todos tus gastos.
+        {/* Selector de periodo interactiv con menú */}
+        <TouchableOpacity
+          style={styles.periodSelector}
+          onPress={() => setIsMonthPickerVisible(!isMonthPickerVisible)}
+        >
+          <View style={styles.periodRow}>
+            <Text style={styles.periodIcon}>📅</Text>
+            <Text style={styles.periodLabel}>Mes seleccionado</Text>
+          </View>
+          <Text style={styles.periodDropdown}>
+            {formatMonthLabel(selectedMonth)} ▾
+          </Text>
+        </TouchableOpacity>
+
+        {/* Lista desplegable de meses */}
+        {isMonthPickerVisible && (
+          <View style={styles.monthPickerContainer}>
+            {availableMonths.map(m => (
+              <TouchableOpacity
+                key={m}
+                style={[
+                  styles.monthPickerOption,
+                  m === selectedMonth && styles.monthPickerOptionSelected,
+                ]}
+                onPress={() => {
+                  setSelectedMonth(m);
+                  setIsMonthPickerVisible(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.monthPickerText,
+                    m === selectedMonth && styles.monthPickerTextSelected,
+                  ]}
+                >
+                  {formatMonthLabel(m)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Tarjetas de Ingresos y Gastos */}
+        <View style={styles.cardsRow}>
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>↑ Ingresos</Text>
+            <Text style={[styles.metricValue, { color: '#D97706' }]}>
+              S/ {totalIncome.toFixed(2)}
+            </Text>
+          </View>
+
+          <View style={styles.metricCard}>
+            <Text style={styles.metricLabel}>↓ Gastos</Text>
+            <Text style={[styles.metricValue, { color: '#E11D48' }]}>
+              S/ {totalExpense.toFixed(2)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Tarjeta de Balance General */}
+        <View style={styles.balanceContainer}>
+          <Text style={styles.balanceTitle}>Balance</Text>
+          <Text style={styles.balanceValue}>S/ {balance.toFixed(2)}</Text>
+        </View>
+
+        {/* Progreso del Mes */}
+        <View style={styles.monthSummaryCard}>
+          <View style={styles.monthHeaderRow}>
+            <Text style={styles.monthTitle}>
+              {formatMonthLabel(selectedMonth)}
+            </Text>
+            <Text style={styles.monthCurrency}>En soles · S/</Text>
+          </View>
+
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryItemLabel}>Ingresos</Text>
+            <Text style={styles.summaryItemValue}>
+              S/ {totalIncome.toFixed(2)}
+            </Text>
+          </View>
+          <View style={styles.progressBarBackground}>
+            <View style={[styles.progressBarFillIncome, { width: '100%' }]} />
+          </View>
+
+          <View style={[styles.summaryRow, { marginTop: 12 }]}>
+            <Text style={styles.summaryItemLabel}>Gastos</Text>
+            <Text style={styles.summaryItemValue}>
+              S/ {totalExpense.toFixed(2)}
+            </Text>
+          </View>
+          <View style={styles.progressBarBackground}>
+            <View
+              style={[
+                styles.progressBarFillExpense,
+                { width: `${Math.min(100, expenseRatio)}%` },
+              ]}
+            />
+          </View>
+
+          <Text style={styles.summaryFooterText}>
+            Tus gastos equivalen al {Math.round(expenseRatio)}% de tus ingresos.
           </Text>
         </View>
-      )}
 
-      <View style={styles.insightBoxSuccess}>
-        <Text style={styles.insightTitleSuccess}>
-          ✓ Tus ingresos siguen cubriendo tus egresos con éxito.
-        </Text>
-      </View>
-    </ScrollView>
+        {/* Sección: ¿En qué estás gastando? */}
+        <Text style={styles.sectionTitle}>¿En qué estás gastando?</Text>
+        <View style={styles.categoriesCard}>
+          {categoryTotals.length === 0 ? (
+            <Text style={styles.emptyCategories}>
+              No hay gastos registrados en este mes.
+            </Text>
+          ) : (
+            categoryTotals.map((cat, index) => (
+              <View
+                key={cat.id}
+                style={[styles.categoryItem, index > 0 && styles.categoryDivider]}
+              >
+                <View style={styles.categoryRowTop}>
+                  <Text style={styles.categoryNameText}>📦 {cat.name}</Text>
+                  <Text style={styles.categoryAmountText}>
+                    S/ {cat.total.toFixed(2)}{' '}
+                    <Text style={styles.categoryPercentageText}>
+                      ({cat.percentage}%)
+                    </Text>
+                  </Text>
+                </View>
+                <View style={styles.progressBarBackground}>
+                  <View
+                    style={[
+                      styles.progressBarFillExpense,
+                      { width: `${cat.percentage}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* Sección: Insights del mes */}
+        <Text style={styles.sectionTitle}>Insights del mes</Text>
+
+        <View
+          style={[
+            styles.insightBox,
+            expenseRatio >= 80 ? styles.insightWarning : styles.insightNormal,
+          ]}
+        >
+          <Text style={styles.insightTitleText}>
+            {expenseRatio >= 80
+              ? '⚠️ Tus gastos están aumentando significativamente.'
+              : '✅ Tus gastos están bajo control.'}
+          </Text>
+          <Text style={styles.insightBodyText}>
+            Este mes tus egresos representan el {Math.round(expenseRatio)}% de tus
+            ingresos totales.
+          </Text>
+        </View>
+
+        {topCategory && (
+          <View style={styles.insightBoxNeutral}>
+            <Text style={styles.insightTitleNeutral}>
+              💡 {topCategory.name} representa el {topCategory.percentage}% de
+              todos tus gastos.
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.insightBoxSuccess}>
+          <Text style={styles.insightTitleSuccess}>
+            ✓ Tus ingresos siguen cubriendo tus egresos con éxito.
+          </Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

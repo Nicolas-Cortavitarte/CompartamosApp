@@ -272,6 +272,7 @@ export function TransactionList({
         </View>
       ) : (
         <SectionList
+          showsVerticalScrollIndicator={false}
           sections={groupedTransactions}
           keyExtractor={item => item.id}
           renderSectionHeader={({ section }) => (
@@ -348,7 +349,9 @@ function formatSectionDate(dateString: string): string {
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    flex: 1,
+  width: '100%',
+  paddingHorizontal: 16,
   },
   center: {
     padding: 24,
