@@ -13,7 +13,7 @@ import { colors } from '../../theme/colors';
 
 import type { Category, Transaction } from '../../types/transactions.types';
 
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -77,33 +77,26 @@ export function TransactionList({
     }
   }, []);
 
-  useEffect(() => {
-    if (!propTransactions) {
+  useFocusEffect(
+    useCallback(() => {
+      if (propTransactions !== undefined) {
+        setLoading(false);
+        return;
+      }
+
       void loadTransactions();
-    } else {
-      getCategories().then(setCategories).catch(console.error);
-      setLoading(false);
-    }
-  }, [loadTransactions, propTransactions]);
+    }, [loadTransactions, propTransactions]),
+  );
 
   useEffect(() => {
-    if (propTransactions !== undefined) {
+    if (propTransactions === undefined) {
       return;
     }
 
-    const parentNavigation =
-      navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
-
-    if (!parentNavigation) {
-      return;
-    }
-
-    const unsubscribe = parentNavigation.addListener('focus', () => {
-      void loadTransactions();
-    });
-
-    return unsubscribe;
-  }, [navigation, loadTransactions, propTransactions]);
+    getCategories()
+      .then(setCategories)
+      .catch(console.error);
+  }, [propTransactions]);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -167,7 +160,7 @@ export function TransactionList({
     : sortedTransactions;
 
   const groupedTransactions = Object.entries(
-    filteredTransactions.reduce<Record<string, Transaction[]>>(
+    sortedTransactions.reduce<Record<string, Transaction[]>>(
       (groups, transaction) => {
         const date = transaction.date;
 
@@ -383,6 +376,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     paddingHorizontal: 16,
+    paddingTop: 24,
   },
   center: {
     padding: 24,
@@ -465,5 +459,6 @@ const styles = StyleSheet.create({
   },
   containerWithoutPadding: {
     paddingHorizontal: 0,
+    paddingTop: 0
   },
 });
