@@ -28,6 +28,8 @@ import type { Transaction } from '../types/transactions.types';
 import { getTransactionById, deleteTransaction } from '../services/transactions.service';
 import { getCategories } from '../services/categories.service';
 
+import { AnimatedPressable } from '../components/atoms/AnimatedPressable';
+
 import { colors } from '../theme/colors';
 
 type DetailRouteProps = NativeStackScreenProps<
@@ -218,7 +220,7 @@ export function TransactionDetailScreen() {
                         />
                     </View>
 
-                    <Pressable
+                    <AnimatedPressable
                         style={styles.editButton}
                         onPress={() =>
                             navigation.navigate('EditTransaction', {
@@ -230,9 +232,9 @@ export function TransactionDetailScreen() {
                         <Text style={styles.editButtonText}>
                             ✎ Editar movimiento
                         </Text>
-                    </Pressable>
+                    </AnimatedPressable>
 
-                    <Pressable
+                    <AnimatedPressable
                         style={[
                             styles.deleteButton,
                             deleting && styles.disabledButton,
@@ -244,7 +246,7 @@ export function TransactionDetailScreen() {
                         <Text style={styles.deleteButtonText}>
                             {deleting ? 'Eliminando...' : 'Eliminar movimiento'}
                         </Text>
-                    </Pressable>
+                    </AnimatedPressable>
 
                 </ScrollView>
             ) : null}

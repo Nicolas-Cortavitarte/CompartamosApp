@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
+  Animated,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import LottieView from 'lottie-react-native';
 import { colors } from '../../theme/colors';
+import { AnimatedPressable } from '../atoms/AnimatedPressable';
 
 interface TransactionEmptyStateProps {
   filtered?: boolean;
@@ -17,11 +20,15 @@ export function TransactionEmptyState({
   filtered = false,
   onAddPress,
 }: TransactionEmptyStateProps) {
+
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Text style={styles.icon}>▤</Text>
-      </View>
+      <LottieView
+        source={require('../../assets/animations/Empty-wallet.json')}
+        autoPlay
+        loop
+        style={styles.emptyAnimation}
+      />
 
       <Text style={styles.title}>
         {filtered
@@ -36,7 +43,7 @@ export function TransactionEmptyState({
       </Text>
 
       {!filtered && onAddPress ? (
-        <Pressable
+        <AnimatedPressable
           style={styles.button}
           onPress={onAddPress}
           accessibilityRole="button"
@@ -44,7 +51,7 @@ export function TransactionEmptyState({
           <Text style={styles.buttonText}>
             + Registrar movimiento
           </Text>
-        </Pressable>
+        </AnimatedPressable>
       ) : null}
     </View>
   );
@@ -97,5 +104,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.surface,
+  },
+  emptyAnimation: {
+    width: 140,
+    height: 140,
+    marginBottom: 8,
   },
 });
