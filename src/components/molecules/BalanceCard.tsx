@@ -4,25 +4,34 @@ import { colors } from '../../theme/colors';
 
 interface BalanceCardProps {
   balance: number;
-  income?: number;
-  expense?: number;
 }
 
 export function BalanceCard({ balance }: BalanceCardProps) {
-  const formattedBalance = balance.toLocaleString('es-PE', {
+  const formattedBalance = Math.abs(balance).toLocaleString('es-PE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 
+  const isNegative = balance < 0;
+
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.label}>Balance actual</Text>
+      <Text style={styles.label}>Balance actual</Text>
+
+      <Text
+        style={styles.balanceAmount}
+        adjustsFontSizeToFit
+        numberOfLines={1}
+        minimumFontScale={0.7}
+      >
+        {isNegative ? '- ' : ''}S/ {formattedBalance}
+      </Text>
+
+      <View style={styles.footer}>
+        <Text style={styles.subtext}>
+          Total de ingresos menos gastos registrados
+        </Text>
       </View>
-
-      <Text style={styles.balanceAmount}>S/ {formattedBalance}</Text>
-
-      <Text style={styles.subtext}>Ingresos menos gastos · Octubre 2026</Text>
     </View>
   );
 }
@@ -31,30 +40,32 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.primary,
     borderRadius: 20,
-    padding: 20,
+    padding: 22,
     marginVertical: 8,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    minHeight: 150,
+    justifyContent: 'center',
   },
   label: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 14,
-    opacity: 0.9,
     fontWeight: '500',
+    opacity: 0.9,
+    marginBottom: 8,
   },
   balanceAmount: {
-    color: '#FFFFFF',
-    fontSize: 32,
+    color: colors.surface,
+    fontSize: 34,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.25)',
+    paddingTop: 12,
   },
   subtext: {
-    color: '#FFFFFF',
+    color: colors.surface,
     fontSize: 12,
-    opacity: 0.85,
+    opacity: 0.9,
   },
 });
