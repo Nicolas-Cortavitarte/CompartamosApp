@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 
+import LottieView from 'lottie-react-native';
 import { colors } from '../../theme/colors';
 
 interface TransactionSuccessModalProps {
@@ -63,7 +64,7 @@ export function TransactionSuccessModal({
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={() => {}}
+      onRequestClose={() => { }}
     >
       <View style={styles.overlay}>
         <Animated.View
@@ -75,9 +76,12 @@ export function TransactionSuccessModal({
             },
           ]}
         >
-          <View style={styles.iconCircle}>
-            <Text style={styles.checkIcon}>✓</Text>
-          </View>
+          <LottieView
+            source={require('../../assets/animations/Success.json')}
+            autoPlay
+            loop={false}
+            style={styles.successAnimation}
+          />
 
           <Text style={styles.title}>
             {isEditing
@@ -148,5 +152,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     marginTop: 20,
+  },
+  successAnimation: {
+    width: 120,
+    height: 120,
+    marginBottom: 16,
   },
 });

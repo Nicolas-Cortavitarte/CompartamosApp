@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Animated,
+  AccessibilityInfo
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +32,57 @@ export function HomeScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const balanceAnimation = useRef(new Animated.Value(0)).current;
+  const metricsAnimation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    let cancelled = false;
+    let animation: Animated.CompositeAnimation | undefined;
+
+    const startAnimation = async () => {
+      const reduceMotion =
+        await AccessibilityInfo.isReduceMotionEnabled();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (reduceMotion) {
+        balanceAnimation.setValue(1);
+        metricsAnimation.setValue(1);
+        return;
+      }
+
+      balanceAnimation.setValue(0);
+      metricsAnimation.setValue(0);
+
+      animation = Animated.stagger(120, [
+        Animated.timing(balanceAnimation, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(metricsAnimation, {
+          toValue: 1,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+      ]);
+
+      animation.start();
+    };
+
+    void startAnimation();
+
+    return () => {
+      cancelled = true;
+      animation?.stop();
+    };
+  }, [loading, balanceAnimation, metricsAnimation]);
 
   const loadData = useCallback(async () => {
     try {
@@ -145,21 +198,51 @@ export function HomeScreen() {
         </View>
 
         {/* Tarjeta principal de Balance */}
-        <BalanceCard balance={currentBalance} />
+        <Animated.View
+          style={{
+            opacity: balanceAnimation,
+            transform: [
+              {
+                translateY: balanceAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <BalanceCard balance={currentBalance} />
+        </Animated.View>
 
-        {/* Botones separados de Ingresos y Gastos (Estilo Figma) */}
-        <View style={styles.summaryButtonsRow}>
+        {/* Tarjetas de Ingresos y Gastos */}
+        <Animated.View
+          style={[
+            styles.summaryButtonsRow,
+            {
+              opacity: metricsAnimation,
+              transform: [
+                {
+                  translateY: metricsAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <FinancialMetricCard
             label="↑ Ingresos"
             amount={totalIncome}
             type="INCOME"
           />
+
           <FinancialMetricCard
             label="↓ Gastos"
             amount={totalExpense}
             type="EXPENSE"
           />
-        </View>
+        </Animated.View>
 
         {/* Tarjeta de Alerta / Insight */}
         <InsightsCarousel insights={insights} />
