@@ -14,13 +14,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 import { BalanceCard } from '../components/molecules/BalanceCard';
-import { InsightCard } from '../components/molecules/InsightCard';
+import { InsightsCarousel } from '../components/organisms/InsightsCarousel';
 
 import { getTransactions } from '../services/transactions.service';
 import type { Transaction } from '../types/transactions.types';
 import { FinancialMetricCard } from '../components/molecules/FinancialMetricCard';
 import { RecentTransactions } from '../components/organisms/RecentTransactions';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+
 export function HomeScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -88,6 +90,26 @@ export function HomeScreen() {
           expenseRatio,
         )}% de tus ingresos).`;
 
+  const insights = [
+    {
+      id: 'balance',
+      title: insightTitle,
+      message: insightMessage,
+    },
+    {
+      id: 'registro',
+      title: 'Registra tus movimientos',
+      message:
+        'Registrar tus ingresos y gastos diariamente te ayuda a conocer mejor las finanzas de tu negocio.',
+    },
+    {
+      id: 'ahorro',
+      title: 'Construye un fondo de ahorro',
+      message:
+        'Cuando tengas dinero disponible, considera separar una parte para imprevistos o futuras inversiones.',
+    },
+  ];
+
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
@@ -115,17 +137,15 @@ export function HomeScreen() {
       >
         {/* Encabezado superior */}
         <View style={styles.header}>
-          <Text style={styles.topInfo}>MI NEGOCIO / OCTUBRE 2026</Text>
-          <Text style={styles.title}>Hola 👋</Text>
-          <Text style={styles.subtitle}>Así va tu negocio este mes</Text>
+          <Text style={styles.topInfo}>MI NEGOCIO</Text>
+          <Text style={styles.title}>¡Hola! 👋</Text>
+          <Text style={styles.subtitle}>
+            Conoce cómo van las finanzas de tu negocio
+          </Text>
         </View>
 
         {/* Tarjeta principal de Balance */}
-        <BalanceCard
-          balance={currentBalance}
-          income={totalIncome}
-          expense={totalExpense}
-        />
+        <BalanceCard balance={currentBalance} />
 
         {/* Botones separados de Ingresos y Gastos (Estilo Figma) */}
         <View style={styles.summaryButtonsRow}>
@@ -141,51 +161,8 @@ export function HomeScreen() {
           />
         </View>
 
-        {/* Sección Resumen del mes */}
-        <Text style={styles.sectionMainTitle}>Resumen del mes</Text>
-        <View style={styles.monthSummaryCard}>
-          <View style={styles.monthHeaderRow}>
-            <Text style={styles.monthTitle}>Octubre 2026</Text>
-            <Text style={styles.monthCurrency}>En soles · S/</Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryItemLabel}>Ingresos</Text>
-            <Text style={styles.summaryItemValue}>
-              S/ {totalIncome.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.progressBarBackground}>
-            <View
-              style={[
-                styles.progressBarFillIncome,
-                { width: `${Math.min(100, 100)}%` },
-              ]}
-            />
-          </View>
-
-          <View style={[styles.summaryRow, { marginTop: 12 }]}>
-            <Text style={styles.summaryItemLabel}>Gastos</Text>
-            <Text style={styles.summaryItemValue}>
-              S/ {totalExpense.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.progressBarBackground}>
-            <View
-              style={[
-                styles.progressBarFillExpense,
-                { width: `${Math.min(100, expenseRatio)}%` },
-              ]}
-            />
-          </View>
-
-          <Text style={styles.summaryFooterText}>
-            Tus gastos equivalen al {Math.round(expenseRatio)}% de tus ingresos.
-          </Text>
-        </View>
-
         {/* Tarjeta de Alerta / Insight */}
-        <InsightCard title={insightTitle} message={insightMessage} />
+        <InsightsCarousel insights={insights} />
 
         {/* Sección Últimos Movimientos */}
         <View style={styles.sectionHeader}>
@@ -274,71 +251,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 4,
-  },
-  sectionMainTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 10,
-  },
-  monthSummaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 16,
-  },
-  monthHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  monthTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  monthCurrency: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  summaryItemLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  summaryItemValue: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  progressBarBackground: {
-    height: 6,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFillIncome: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 3,
-  },
-  progressBarFillExpense: {
-    height: '100%',
-    backgroundColor: '#E11D48',
-    borderRadius: 3,
-  },
-  summaryFooterText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 12,
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -14,7 +14,6 @@ export function FinancialMetricCard({
   type,
 }: FinancialMetricCardProps) {
   const isIncome = type === 'INCOME';
-  const textColor = isIncome ? '#D97706' : '#E11D48';
 
   const formattedAmount = amount.toLocaleString('es-PE', {
     minimumFractionDigits: 2,
@@ -24,7 +23,16 @@ export function FinancialMetricCard({
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, { color: textColor }]}>
+
+      <Text
+        style={[
+          styles.value,
+          { color: isIncome ? colors.income : colors.expense },
+        ]}
+        adjustsFontSizeToFit
+        numberOfLines={1}
+        minimumFontScale={0.7}
+      >
         S/ {formattedAmount}
       </Text>
     </View>
@@ -34,11 +42,12 @@ export function FinancialMetricCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: '#FDF2F4',
+    backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#FCE7EC',
+    borderColor: colors.border,
+    minWidth: 0,
   },
   label: {
     fontSize: 13,
@@ -46,8 +55,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   value: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 'bold',
-    marginTop: 4,
+    marginTop: 8,
   },
 });
