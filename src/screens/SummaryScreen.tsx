@@ -58,10 +58,10 @@ export function SummaryScreen() {
   }, []);
 
   useFocusEffect(
-  useCallback(() => {
-    void loadData();
-  }, [loadData]),
-);
+    useCallback(() => {
+      void loadData();
+    }, [loadData]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -99,6 +99,14 @@ export function SummaryScreen() {
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   const balance = totalIncome - totalExpense;
+  const maxAmount = Math.max(totalIncome, totalExpense);
+
+  const incomeBarPercentage =
+    maxAmount > 0 ? (totalIncome / maxAmount) * 100 : 0;
+
+  const expenseBarPercentage =
+    maxAmount > 0 ? (totalExpense / maxAmount) * 100 : 0;
+
   const expenseRatio = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 0;
 
   // Agrupación de gastos por categoría
@@ -209,14 +217,22 @@ export function SummaryScreen() {
         <View style={styles.cardsRow}>
           <View style={styles.metricCard}>
             <Text style={styles.metricLabel}>↑ Ingresos</Text>
-            <Text style={[styles.metricValue, { color: '#D97706' }]}>
+            <Text
+              style={[styles.metricValue, { color: colors.income }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}>
               S/ {totalIncome.toFixed(2)}
             </Text>
           </View>
 
           <View style={styles.metricCard}>
             <Text style={styles.metricLabel}>↓ Gastos</Text>
-            <Text style={[styles.metricValue, { color: '#E11D48' }]}>
+            <Text
+              style={[styles.metricValue, { color: colors.expense }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}>
               S/ {totalExpense.toFixed(2)}
             </Text>
           </View>
@@ -224,7 +240,7 @@ export function SummaryScreen() {
 
         {/* Tarjeta de Balance General */}
         <View style={styles.balanceContainer}>
-          <Text style={styles.balanceTitle}>Balance</Text>
+          <Text style={styles.balanceTitle}>Balance del Mes</Text>
           <Text style={styles.balanceValue}>S/ {balance.toFixed(2)}</Text>
         </View>
 
@@ -244,7 +260,12 @@ export function SummaryScreen() {
             </Text>
           </View>
           <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFillIncome, { width: '100%' }]} />
+            <View
+              style={[
+                styles.progressBarFillIncome,
+                { width: `${incomeBarPercentage}%` },
+              ]}
+            />
           </View>
 
           <View style={[styles.summaryRow, { marginTop: 12 }]}>
@@ -257,7 +278,7 @@ export function SummaryScreen() {
             <View
               style={[
                 styles.progressBarFillExpense,
-                { width: `${Math.min(100, expenseRatio)}%` },
+                { width: `${expenseBarPercentage}%` },
               ]}
             />
           </View>
@@ -303,22 +324,40 @@ export function SummaryScreen() {
         </View>
 
         {/* Sección: Insights del mes */}
-        <Text style={styles.sectionTitle}>Insights del mes</Text>
+
+        {/* Sección: Consejos financieros */}
+        <Text style={styles.sectionTitle}>
+          Consejos para tu negocio
+        </Text>
 
         <View
           style={[
             styles.insightBox,
-            expenseRatio >= 80 ? styles.insightWarning : styles.insightNormal,
+            totalIncome === 0 && totalExpense === 0
+              ? styles.insightNormal
+              : totalIncome === 0 || expenseRatio >= 80
+                ? styles.insightWarning
+                : styles.insightNormal,
           ]}
         >
           <Text style={styles.insightTitleText}>
-            {expenseRatio >= 80
-              ? '⚠️ Tus gastos están aumentando significativamente.'
-              : '✅ Tus gastos están bajo control.'}
+            {totalIncome === 0 && totalExpense === 0
+              ? '💡 Comienza a registrar tus movimientos.'
+              : totalIncome === 0
+                ? '⚠️ Todavía no registras ingresos este mes.'
+                : expenseRatio >= 80
+                  ? '⚠️ Tus gastos representan una parte importante de tus ingresos.'
+                  : '💡 Tus gastos están por debajo del 80% de tus ingresos.'}
           </Text>
+
           <Text style={styles.insightBodyText}>
-            Este mes tus egresos representan el {Math.round(expenseRatio)}% de tus
-            ingresos totales.
+            {totalIncome === 0 && totalExpense === 0
+              ? 'Registra tus ingresos y gastos para conocer mejor las finanzas de tu negocio.'
+              : totalIncome === 0
+                ? 'Has registrado gastos, pero todavía no ingresos. Revisa tus movimientos para mantener el control de tu dinero.'
+                : `Este mes tus gastos representan el ${Math.round(
+                  expenseRatio,
+                )}% de tus ingresos.`}
           </Text>
         </View>
 
@@ -331,11 +370,13 @@ export function SummaryScreen() {
           </View>
         )}
 
-        <View style={styles.insightBoxSuccess}>
-          <Text style={styles.insightTitleSuccess}>
-            ✓ Tus ingresos siguen cubriendo tus egresos con éxito.
-          </Text>
-        </View>
+        {balance > 0 && (
+          <View style={styles.insightBoxSuccess}>
+            <Text style={styles.insightTitleSuccess}>
+              ✓ Tus ingresos son mayores que tus gastos este mes.
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -441,11 +482,11 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#FDF2F4',
+    backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#FCE7EC',
+    borderColor: colors.border,
   },
   metricLabel: {
     fontSize: 13,
@@ -454,8 +495,8 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 4,
+    fontWeight: '700',
+    marginTop: 6,
   },
   balanceContainer: {
     backgroundColor: colors.surface,
@@ -518,18 +559,18 @@ const styles = StyleSheet.create({
   },
   progressBarBackground: {
     height: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: colors.border,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFillIncome: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.income,
     borderRadius: 3,
   },
   progressBarFillExpense: {
     height: '100%',
-    backgroundColor: '#E11D48',
+    backgroundColor: colors.expense,
     borderRadius: 3,
   },
   summaryFooterText: {
@@ -557,7 +598,7 @@ const styles = StyleSheet.create({
   },
   categoryDivider: {
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: colors.border,
     marginTop: 8,
   },
   categoryRowTop: {

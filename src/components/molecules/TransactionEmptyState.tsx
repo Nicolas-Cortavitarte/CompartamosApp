@@ -42,7 +42,7 @@ export function TransactionEmptyState({
           accessibilityRole="button"
         >
           <Text style={styles.buttonText}>
-            + Agregar movimiento
+            + Registrar movimiento
           </Text>
         </Pressable>
       ) : null}
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: '#F9E5EF',
+    backgroundColor: colors.errorBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
