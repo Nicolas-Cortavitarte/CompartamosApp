@@ -24,6 +24,7 @@ import { TransactionAmountInput } from '../atoms/TransactionAmountInput';
 import { TransactionCategorySelect } from '../molecules/TransactionCategorySelect';
 import { TransactionDatePicker } from '../molecules/TransactionDatePicker';
 import { TransactionSuccessModal } from '../molecules/TransactionSuccessModal';
+import { AnimatedPressable } from '../atoms/AnimatedPressable';
 
 interface TransactionFormProps {
   transaction?: Transaction;
@@ -268,7 +269,7 @@ export function TransactionForm({
           <Text style={styles.error}>{error}</Text>
         ) : null}
 
-        <Pressable
+        <AnimatedPressable
           onPress={handleSubmit}
           disabled={saving || loadingCategories || filteredCategories.length === 0}
           style={[
@@ -280,14 +281,14 @@ export function TransactionForm({
           {saving ? (
             <ActivityIndicator color={colors.surface} />
           ) : (
-            <View style={styles.saveButtonContent}>
-              <Text style={styles.saveButtonIcon}>✓</Text>
-              <Text style={styles.saveButtonText}>
-                {isEditing ? 'Guardar cambios' : 'Guardar movimiento'}
-              </Text>
-            </View>
+              <View style={styles.saveButtonContent}>
+                <Text style={styles.saveButtonIcon}>✓</Text>
+                <Text style={styles.saveButtonText}>
+                  {isEditing ? 'Guardar cambios' : 'Guardar movimiento'}
+                </Text>
+              </View>
           )}
-        </Pressable>
+        </AnimatedPressable>
         <Text style={styles.footerHelper}>
           Tu balance se actualizará al guardar.
         </Text>

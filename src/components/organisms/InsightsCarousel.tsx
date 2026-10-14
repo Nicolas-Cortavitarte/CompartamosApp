@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
+  Animated,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -22,6 +24,72 @@ interface InsightsCarouselProps {
   insights: Insight[];
 }
 
+interface AnimatedDotProps {
+  active: boolean;
+}
+
+function AnimatedDot({ active }: AnimatedDotProps) {
+  const progress = useRef(
+    new Animated.Value(active ? 1 : 0),
+  ).current;
+
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+      if (mounted) {
+        setReduceMotion(enabled);
+      }
+    });
+
+    const subscription = AccessibilityInfo.addEventListener(
+      'reduceMotionChanged',
+      setReduceMotion,
+    );
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const animation = Animated.timing(progress, {
+      toValue: active ? 1 : 0,
+      duration: reduceMotion ? 0 : 220,
+      useNativeDriver: false,
+    });
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [active, progress, reduceMotion]);
+
+  const width = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [7, 20],
+  });
+
+  const backgroundColor = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.border, colors.primary],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.dot,
+        {
+          width,
+          backgroundColor,
+        },
+      ]}
+    />
+  );
+}
+
 export function InsightsCarousel({
   insights,
 }: InsightsCarouselProps) {
@@ -34,7 +102,6 @@ export function InsightsCarousel({
     event: NativeSyntheticEvent<NativeScrollEvent>,
   ) {
     const offsetX = event.nativeEvent.contentOffset.x;
-
     const index = Math.round(offsetX / cardWidth);
 
     setActiveIndex(
@@ -74,12 +141,9 @@ export function InsightsCarousel({
 
       <View style={styles.indicators}>
         {insights.map((insight, index) => (
-          <View
+          <AnimatedDot
             key={insight.id}
-            style={[
-              styles.dot,
-              activeIndex === index && styles.activeDot,
-            ]}
+            active={activeIndex === index}
           />
         ))}
       </View>
@@ -108,13 +172,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   dot: {
-    width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: colors.border,
-  },
-  activeDot: {
-    width: 20,
-    backgroundColor: colors.primary,
   },
 });
