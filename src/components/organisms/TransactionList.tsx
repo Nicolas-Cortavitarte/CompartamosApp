@@ -87,6 +87,10 @@ export function TransactionList({
   }, [loadTransactions, propTransactions]);
 
   useEffect(() => {
+    if (propTransactions !== undefined) {
+      return;
+    }
+
     const parentNavigation =
       navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -99,7 +103,7 @@ export function TransactionList({
     });
 
     return unsubscribe;
-  }, [navigation, loadTransactions]);
+  }, [navigation, loadTransactions, propTransactions]);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -152,9 +156,15 @@ export function TransactionList({
     return matchesType && matchesCategory && matchesPeriod;
   });
 
+  const sortedTransactions = [...filteredTransactions].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() -
+      new Date(a.created_at).getTime(),
+  );
+
   const displayTransactions = limit
-    ? filteredTransactions.slice(0, limit)
-    : filteredTransactions;
+    ? sortedTransactions.slice(0, limit)
+    : sortedTransactions;
 
   const groupedTransactions = Object.entries(
     filteredTransactions.reduce<Record<string, Transaction[]>>(
@@ -188,7 +198,10 @@ export function TransactionList({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      hideFilters && styles.containerWithoutPadding,
+    ]}>
       {!hideFilters && (
         <>
           <Text style={styles.title}>Mis movimientos</Text>
@@ -259,7 +272,7 @@ export function TransactionList({
         <View>
           {displayTransactions.length === 0 && !error ? (
             <TransactionEmptyState
-              filtered={transactions.length > 0}
+              filtered={activeTransactions.length > 0}
               onAddPress={() => {
                 navigation.navigate('Agregar');
               }}
@@ -322,7 +335,7 @@ export function TransactionList({
           ListEmptyComponent={
             !error ? (
               <TransactionEmptyState
-                filtered={transactions.length > 0}
+                filtered={activeTransactions.length > 0}
                 onAddPress={() => {
                   navigation.navigate('Agregar');
                 }}
@@ -449,5 +462,8 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 12,
+  },
+  containerWithoutPadding: {
+    paddingHorizontal: 0,
   },
 });
