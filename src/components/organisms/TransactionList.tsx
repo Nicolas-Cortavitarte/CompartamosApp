@@ -26,6 +26,7 @@ import { getCategories } from '../../services/categories.service';
 import { TransactionItem } from '../molecules/TransactionItem';
 import { TransactionFilters } from '../molecules/TransactionFilters';
 import { TransactionEmptyState } from '../molecules/TransactionEmptyState';
+import type { TransactionPeriod } from '../molecules/TransactionFilters';
 
 type TransactionFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 
@@ -49,16 +50,8 @@ export function TransactionList({
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<TransactionFilter>('ALL');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
-
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const today = new Date();
-
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-
-    return `${year}-${month}`;
-  });
-
+  const [selectedPeriod, setSelectedPeriod] =
+    useState<TransactionPeriod>('LAST_MONTH');
   const activeTransactions = propTransactions ?? transactions;
 
   const loadTransactions = useCallback(async () => {
@@ -119,6 +112,27 @@ export function TransactionList({
     return category?.name ?? 'Sin categoría';
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const startDate = new Date(today);
+
+  const daysToSubtract =
+    selectedPeriod === 'LAST_MONTH' ? 29 : 89;
+
+  startDate.setDate(startDate.getDate() - daysToSubtract);
+
+  function formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  const startDateString = formatDate(startDate);
+  const todayString = formatDate(today);
+
   const filteredTransactions = activeTransactions.filter(transaction => {
     const itemType = String(transaction.type || '').toUpperCase();
     const currentFilter = filter.toUpperCase();
@@ -126,12 +140,16 @@ export function TransactionList({
 
     const matchesCategory =
       !selectedCategoryId || transaction.category_id === selectedCategoryId;
-    const transactionMonth = transaction.date
-      ? transaction.date.slice(0, 7)
-      : '';
-    const matchesMonth = !selectedMonth || transactionMonth === selectedMonth;
+    const transactionDate = transaction.date?.slice(0, 10) ?? '';
 
-    return matchesType && matchesCategory && matchesMonth;
+    const matchesPeriod =
+      hideFilters ||
+      (
+        transactionDate >= startDateString &&
+        transactionDate <= todayString
+      );
+
+    return matchesType && matchesCategory && matchesPeriod;
   });
 
   const displayTransactions = limit
@@ -221,8 +239,8 @@ export function TransactionList({
             type={filter}
             selectedCategoryId={selectedCategoryId}
             onCategoryChange={setSelectedCategoryId}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
+            selectedPeriod={selectedPeriod}
+            onPeriodChange={setSelectedPeriod}
           />
         </>
       )}
@@ -350,8 +368,8 @@ function formatSectionDate(dateString: string): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  width: '100%',
-  paddingHorizontal: 16,
+    width: '100%',
+    paddingHorizontal: 16,
   },
   center: {
     padding: 24,

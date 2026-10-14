@@ -14,13 +14,15 @@ import type {
   TransactionType,
 } from '../../types/transactions.types';
 
+export type TransactionPeriod = 'LAST_MONTH' | 'LAST_3_MONTHS';
+
 interface TransactionFiltersProps {
   categories: Category[];
   type: 'ALL' | TransactionType;
   selectedCategoryId: string;
   onCategoryChange: (id: string) => void;
-  selectedMonth: string;
-  onMonthChange: (month: string) => void;
+  selectedPeriod: TransactionPeriod;
+  onPeriodChange: (period: TransactionPeriod) => void;
 }
 
 interface FilterOption {
@@ -28,22 +30,16 @@ interface FilterOption {
   value: string;
 }
 
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril',
-  'Mayo', 'Junio', 'Julio', 'Agosto',
-  'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-
 export function TransactionFilters({
   categories,
   type,
   selectedCategoryId,
   onCategoryChange,
-  selectedMonth,
-  onMonthChange,
+  selectedPeriod,
+  onPeriodChange,
 }: TransactionFiltersProps) {
   const [openFilter, setOpenFilter] = useState<
-    'category' | 'month' | null
+    'category' | 'period' | null
   >(null);
 
   const availableCategories = categories.filter(
@@ -58,37 +54,28 @@ export function TransactionFilters({
     })),
   ];
 
-  const currentYear = new Date().getFullYear();
-
-  const monthOptions: FilterOption[] = [
-    { label: 'Todos los meses', value: '' },
-    ...Array.from({ length: 12 }, (_, index) => {
-      const month = String(index + 1).padStart(2, '0');
-
-      return {
-        label: `${MONTH_NAMES[index]} ${currentYear}`,
-        value: `${currentYear}-${month}`,
-      };
-    }).reverse(),
+  const periodOptions: FilterOption[] = [
+    { label: 'Último mes', value: 'LAST_MONTH' },
+    { label: 'Últimos 3 meses', value: 'LAST_3_MONTHS' },
   ];
 
   const categoryLabel =
     categoryOptions.find(option => option.value === selectedCategoryId)
       ?.label ?? 'Todas las categorías';
 
-  const monthLabel =
-    monthOptions.find(option => option.value === selectedMonth)
-      ?.label ?? 'Todos los meses';
+  const periodLabel =
+    periodOptions.find(option => option.value === selectedPeriod)
+      ?.label ?? 'Último mes';
 
   const options = openFilter === 'category'
     ? categoryOptions
-    : monthOptions;
+    : periodOptions;
 
   function handleSelect(value: string) {
     if (openFilter === 'category') {
       onCategoryChange(value);
-    } else if (openFilter === 'month') {
-      onMonthChange(value);
+    } else if (openFilter === 'period') {
+      onPeriodChange(value as TransactionPeriod);
     }
 
     setOpenFilter(null);
@@ -109,11 +96,11 @@ export function TransactionFilters({
 
       <Pressable
         style={styles.selector}
-        onPress={() => setOpenFilter('month')}
+        onPress={() => setOpenFilter('period')}
         accessibilityRole="button"
       >
         <Text style={styles.selectorText} numberOfLines={1}>
-          {monthLabel}
+          {periodLabel}
         </Text>
         <Text style={styles.arrow}>⌄</Text>
       </Pressable>
@@ -129,7 +116,7 @@ export function TransactionFilters({
             <Text style={styles.modalTitle}>
               {openFilter === 'category'
                 ? 'Selecciona una categoría'
-                : 'Selecciona un mes'}
+                : 'Selecciona un período'}
             </Text>
 
             <ScrollView>
