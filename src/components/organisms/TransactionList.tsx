@@ -274,7 +274,7 @@ export function TransactionList({
             <TransactionEmptyState
               filtered={activeTransactions.length > 0}
               onAddPress={() => {
-                navigation.navigate('Agregar');
+                navigation.navigate('Registrar');
               }}
             />
           ) : (
@@ -337,7 +337,7 @@ export function TransactionList({
               <TransactionEmptyState
                 filtered={activeTransactions.length > 0}
                 onAddPress={() => {
-                  navigation.navigate('Agregar');
+                  navigation.navigate('Registrar');
                 }}
               />
             ) : undefined

@@ -25,7 +25,7 @@ import { colors } from '../theme/colors';
 export type RootTabParamList = {
   Inicio: undefined;
   Movimientos: undefined;
-  Agregar: undefined;
+  Registrar: undefined;
   Resumen: undefined;
 };
 
@@ -47,7 +47,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const icons: Record<keyof RootTabParamList, string> = {
   Inicio: '⌂',
   Movimientos: '☷',
-  Agregar: '+',
+  Registrar: '+',
   Resumen: '▥',
 };
 
@@ -62,7 +62,7 @@ function MainTabs() {
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
         tabBarIcon: ({ focused }) => {
-          const isAdd = route.name === 'Agregar';
+          const isAdd = route.name === 'Registrar';
 
           return (
             <View
@@ -101,7 +101,7 @@ function MainTabs() {
       />
 
       <Tab.Screen
-        name="Agregar"
+        name="Registrar"
         component={CreateTransactionScreen}
       />
 
