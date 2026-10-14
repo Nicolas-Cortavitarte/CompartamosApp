@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +23,7 @@ import { TransactionTypeButton } from '../atoms/TransactionTypeButton';
 import { TransactionAmountInput } from '../atoms/TransactionAmountInput';
 import { TransactionCategorySelect } from '../molecules/TransactionCategorySelect';
 import { TransactionDatePicker } from '../molecules/TransactionDatePicker';
+import { TransactionSuccessModal } from '../molecules/TransactionSuccessModal';
 
 interface TransactionFormProps {
   transaction?: Transaction;
@@ -68,6 +68,7 @@ export function TransactionForm({
     return new Date(year, month - 1, day);
   });
   const isEditing = Boolean(transaction);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -111,6 +112,15 @@ export function TransactionForm({
     setError('');
   }
 
+  const handleSuccessFinished = useCallback(() => {
+    setShowSuccess(false);
+
+    if (isEditing) {
+      onUpdated?.();
+    } else {
+      onCreated?.();
+    }
+  }, [isEditing, onUpdated, onCreated]);
 
   async function handleSubmit() {
     if (saving) {
@@ -153,9 +163,6 @@ export function TransactionForm({
 
       if (transaction) {
         await updateTransaction(transaction.id, transactionData);
-
-        Alert.alert('Éxito', 'Movimiento actualizado correctamente.');
-        onUpdated?.();
       } else {
         await createTransaction(transactionData);
 
@@ -163,10 +170,9 @@ export function TransactionForm({
         setCategoryId('');
         setDescription('');
         setDate(new Date());
-
-        Alert.alert('Éxito', 'Movimiento registrado correctamente.');
-        onCreated?.();
       }
+
+      setShowSuccess(true);
     } catch (err) {
       setError(
         err instanceof Error
@@ -181,104 +187,112 @@ export function TransactionForm({
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.title}>
-        {isEditing ? 'Editar movimiento' : 'Nuevo movimiento'}
-      </Text>
-
-      <Text style={styles.subtitle}>
-        Registra tus ingresos y gastos para llevar el control de tu dinero.
-      </Text>
-
-      <View style={styles.typeSelector}>
-        <TransactionTypeButton
-          type="INCOME"
-          selected={type === 'INCOME'}
-          onPress={() => changeType('INCOME')}
-        />
-
-        <TransactionTypeButton
-          type="EXPENSE"
-          selected={type === 'EXPENSE'}
-          onPress={() => changeType('EXPENSE')}
-        />
-      </View>
-
-      <TransactionAmountInput
-        value={amount}
-        onChangeText={setAmount}
+    <>
+      <TransactionSuccessModal
+        visible={showSuccess}
+        isEditing={isEditing}
+        onFinished={handleSuccessFinished}
       />
 
-      {loadingCategories ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : filteredCategories.length === 0 ? (
-        <Text style={styles.helper}>
-          No hay categorías disponibles para este tipo de movimiento.
-        </Text>
-      ) : (
-        <TransactionCategorySelect
-          categories={filteredCategories}
-          value={categoryId}
-          onChange={id => {
-            setCategoryId(id);
-            setError('');
-          }}
-        />
-      )}
-
-      <TransactionDatePicker
-        value={date}
-        onChange={setDate}
-      />
-
-      <View style={styles.descriptionHeader}>
-        <Text style={styles.label}>Descripción</Text>
-        <Text style={styles.optionalText}>Opcional</Text>
-      </View>
-
-      <TextInput
-        value={description}
-        onChangeText={setDescription}
-        placeholder="Ej. Compra de productos al proveedor"
-        placeholderTextColor={colors.information}
-        style={styles.descriptionInput}
-        maxLength={250}
-        multiline
-        numberOfLines={3}
-      />
-
-      {error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : null}
-
-      <Pressable
-        onPress={handleSubmit}
-        disabled={saving || loadingCategories || filteredCategories.length === 0}
-        style={[
-          styles.saveButton,
-          (saving || loadingCategories || filteredCategories.length === 0) &&
-          styles.saveButtonDisabled,
-        ]}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
       >
-        {saving ? (
-          <ActivityIndicator color={colors.surface} />
+        <Text style={styles.title}>
+          {isEditing ? 'Editar movimiento' : 'Nuevo movimiento'}
+        </Text>
+
+        <Text style={styles.subtitle}>
+          Registra tus ingresos y gastos para llevar el control de tu dinero.
+        </Text>
+
+        <View style={styles.typeSelector}>
+          <TransactionTypeButton
+            type="INCOME"
+            selected={type === 'INCOME'}
+            onPress={() => changeType('INCOME')}
+          />
+
+          <TransactionTypeButton
+            type="EXPENSE"
+            selected={type === 'EXPENSE'}
+            onPress={() => changeType('EXPENSE')}
+          />
+        </View>
+
+        <TransactionAmountInput
+          value={amount}
+          onChangeText={setAmount}
+        />
+
+        {loadingCategories ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : filteredCategories.length === 0 ? (
+          <Text style={styles.helper}>
+            No hay categorías disponibles para este tipo de movimiento.
+          </Text>
         ) : (
-          <View style={styles.saveButtonContent}>
-            <Text style={styles.saveButtonIcon}>✓</Text>
-            <Text style={styles.saveButtonText}>
-              {isEditing ? 'Guardar cambios' : 'Guardar movimiento'}
-            </Text>
-          </View>
+          <TransactionCategorySelect
+            categories={filteredCategories}
+            value={categoryId}
+            onChange={id => {
+              setCategoryId(id);
+              setError('');
+            }}
+          />
         )}
-      </Pressable>
-      <Text style={styles.footerHelper}>
-        Tu balance se actualizará al guardar.
-      </Text>
-    </ScrollView>
+
+        <TransactionDatePicker
+          value={date}
+          onChange={setDate}
+        />
+
+        <View style={styles.descriptionHeader}>
+          <Text style={styles.label}>Descripción</Text>
+          <Text style={styles.optionalText}>Opcional</Text>
+        </View>
+
+        <TextInput
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Ej. Compra de productos al proveedor"
+          placeholderTextColor={colors.information}
+          style={styles.descriptionInput}
+          maxLength={250}
+          multiline
+          numberOfLines={3}
+        />
+
+        {error ? (
+          <Text style={styles.error}>{error}</Text>
+        ) : null}
+
+        <Pressable
+          onPress={handleSubmit}
+          disabled={saving || loadingCategories || filteredCategories.length === 0}
+          style={[
+            styles.saveButton,
+            (saving || loadingCategories || filteredCategories.length === 0) &&
+            styles.saveButtonDisabled,
+          ]}
+        >
+          {saving ? (
+            <ActivityIndicator color={colors.surface} />
+          ) : (
+            <View style={styles.saveButtonContent}>
+              <Text style={styles.saveButtonIcon}>✓</Text>
+              <Text style={styles.saveButtonText}>
+                {isEditing ? 'Guardar cambios' : 'Guardar movimiento'}
+              </Text>
+            </View>
+          )}
+        </Pressable>
+        <Text style={styles.footerHelper}>
+          Tu balance se actualizará al guardar.
+        </Text>
+      </ScrollView>
+    </>
   );
 }
 
