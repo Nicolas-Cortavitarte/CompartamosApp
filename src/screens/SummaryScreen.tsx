@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -9,9 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { colors } from '../theme/colors';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/AppNavigator';
+import { ensureAnonymousSession } from '../services/auth.service';
 
 import { getTransactions } from '../services/transactions.service';
 import { getCategories } from '../services/categories.service';
@@ -19,14 +18,12 @@ import type { Transaction, Category } from '../types/transactions.types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export function SummaryScreen() {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [, setError] = useState('');
+  const [error, setError] = useState('');
 
   // Selector de mes dinámico (por defecto el mes actual en formato YYYY-MM)
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -41,6 +38,7 @@ export function SummaryScreen() {
   const loadData = useCallback(async () => {
     try {
       setError('');
+      await ensureAnonymousSession();
       const [txData, catData] = await Promise.all([
         getTransactions(),
         getCategories(),
@@ -59,17 +57,11 @@ export function SummaryScreen() {
     }
   }, []);
 
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     void loadData();
-  }, [loadData]);
-
-  // Recargar al enfocar la pantalla
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      void loadData();
-    });
-    return unsubscribe;
-  }, [navigation, loadData]);
+  }, [loadData]),
+);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -77,12 +69,10 @@ export function SummaryScreen() {
   };
 
   // Generar lista de los últimos 6 meses
-  const availableMonths = Array.from({ length: 6 }).map((_, i) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}`;
+  const now = new Date();
+  const availableMonths = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
 
   // Helper para formatear '2026-10' a 'Octubre 2026'
@@ -163,6 +153,11 @@ export function SummaryScreen() {
         }
       >
         {/* Encabezado */}
+        {error !== '' && (
+          <View style={[styles.insightBox, styles.insightWarning]}>
+            <Text style={styles.insightTitleText}>{error}</Text>
+          </View>
+        )}
         <View style={styles.header}>
           <Text style={styles.title}>Resumen</Text>
           <Text style={styles.subtitle}>Entiende cómo se mueve tu dinero.</Text>
