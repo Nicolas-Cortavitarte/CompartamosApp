@@ -11,7 +11,7 @@ import {
   AccessibilityInfo
 } from 'react-native';
 import { colors } from '../theme/colors';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -23,6 +23,8 @@ import type { Transaction } from '../types/transactions.types';
 import { FinancialMetricCard } from '../components/molecules/FinancialMetricCard';
 import { RecentTransactions } from '../components/organisms/RecentTransactions';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getSavingsBalanceSummary } from '../services/savings.service';
+import type { SavingsBalanceSummary } from '../types/savings.types';
 
 
 export function HomeScreen() {
@@ -32,8 +34,13 @@ export function HomeScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const requestIdRef = useRef(0);
   const balanceAnimation = useRef(new Animated.Value(0)).current;
   const metricsAnimation = useRef(new Animated.Value(0)).current;
+  const [savingsBalance, setSavingsBalance] =
+    useState<SavingsBalanceSummary | null>(null);
 
   useEffect(() => {
     if (loading) {
@@ -84,29 +91,82 @@ export function HomeScreen() {
     };
   }, [loading, balanceAnimation, metricsAnimation]);
 
+
+
   const loadData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+
+    const isLatestRequest = () =>
+      requestId === requestIdRef.current;
+
+    setError(null);
+
     try {
-      const data = await getTransactions();
-      setTransactions(data || []);
-    } catch (err) {
-      console.error('Error al cargar datos en HomeScreen:', err);
+      const transactionsData = await getTransactions();
+
+      if (!isLatestRequest()) {
+        return;
+      }
+
+      setTransactions(transactionsData);
+
+      try {
+        const balanceData = await getSavingsBalanceSummary(
+          transactionsData,
+        );
+
+        if (!isLatestRequest()) {
+          return;
+        }
+
+        setSavingsBalance(balanceData);
+      } catch (savingsError) {
+        if (!isLatestRequest()) {
+          return;
+        }
+
+        console.error(
+          'Error al cargar el balance de ahorro:',
+          savingsError,
+        );
+
+        setSavingsBalance(null);
+
+        setError(
+          'Se cargaron tus movimientos, pero no pudimos consultar tus metas de ahorro.',
+        );
+      }
+    } catch (transactionsError) {
+      if (!isLatestRequest()) {
+        return;
+      }
+
+      console.error(
+        'Error al cargar las transacciones:',
+        transactionsError,
+      );
+
+      setError(
+        'No pudimos actualizar tus movimientos. Comprueba tu conexión e inténtalo nuevamente.',
+      );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isLatestRequest()) {
+        setLoading(false);
+        setRefreshing(false);
+        setHasLoaded(true);
+      }
     }
   }, []);
 
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
-
-  // Recarga automática al volver de 'Agregar' o 'Editar'
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+  useFocusEffect(
+    useCallback(() => {
       void loadData();
-    });
-    return unsubscribe;
-  }, [navigation, loadData]);
+
+      return () => {
+        requestIdRef.current += 1;
+      };
+    }, [loadData]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -121,8 +181,6 @@ export function HomeScreen() {
   const totalExpense = transactions
     .filter(t => t.type?.toUpperCase() === 'EXPENSE')
     .reduce((sum, t) => sum + Number(t.amount || 0), 0);
-
-  const currentBalance = totalIncome - totalExpense;
 
   // Cálculo de porcentajes para la sección de resumen del mes
   const expenseRatio = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 0;
@@ -163,7 +221,7 @@ export function HomeScreen() {
     },
   ];
 
-  if (loading && !refreshing) {
+  if (loading && !hasLoaded) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -197,6 +255,28 @@ export function HomeScreen() {
           </Text>
         </View>
 
+        {error && (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorTitle}>
+              No pudimos actualizar toda tu información
+            </Text>
+
+            <Text style={styles.errorMessage}>
+              {error}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => void loadData()}
+              accessibilityRole="button"
+              accessibilityLabel="Reintentar carga de información">
+              <Text style={styles.retryButtonText}>
+                Reintentar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Tarjeta principal de Balance */}
         <Animated.View
           style={{
@@ -211,8 +291,46 @@ export function HomeScreen() {
             ],
           }}
         >
-          <BalanceCard balance={currentBalance} />
+
+          {savingsBalance ? (
+            <BalanceCard
+              balance={savingsBalance.available_balance}
+              accumulatedBalance={savingsBalance.accumulated_balance}
+              reservedAmount={savingsBalance.reserved_amount}
+            />
+          ) : (
+            <View style={styles.balanceUnavailable}>
+              <Text style={styles.balanceUnavailableTitle}>
+                Balance no disponible
+              </Text>
+
+              <Text style={styles.balanceUnavailableText}>
+                No pudimos verificar cuánto dinero tienes
+                reservado en tus metas.
+              </Text>
+            </View>
+          )}
         </Animated.View>
+
+
+        <TouchableOpacity
+          style={styles.savingsAccess}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Ir a mis metas de ahorro"
+          onPress={() => navigation.navigate('SavingsGoals')}>
+          <View style={styles.savingsAccessText}>
+            <Text style={styles.savingsAccessTitle}>
+              Mis metas de ahorro
+            </Text>
+            <Text style={styles.savingsAccessSubtitle}>
+              Separa dinero para alcanzar tus objetivos
+            </Text>
+          </View>
+
+          <Text style={styles.savingsAccessArrow}>›</Text>
+        </TouchableOpacity>
+
 
         {/* Tarjetas de Ingresos y Gastos */}
         <Animated.View
@@ -351,5 +469,88 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '600',
+  },
+
+  savingsAccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    marginTop: 8,
+  },
+  savingsAccessText: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  savingsAccessTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  savingsAccessSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  savingsAccessArrow: {
+    fontSize: 28,
+    color: colors.primary,
+  },
+  errorCard: {
+    backgroundColor: colors.errorBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  errorTitle: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  errorMessage: {
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  balanceUnavailable: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 22,
+    marginVertical: 8,
+    minHeight: 150,
+    justifyContent: 'center',
+  },
+  balanceUnavailableTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  balanceUnavailableText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
 });

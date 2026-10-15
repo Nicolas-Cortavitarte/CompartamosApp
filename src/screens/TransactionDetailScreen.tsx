@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -29,6 +28,7 @@ import { getTransactionById, deleteTransaction } from '../services/transactions.
 import { getCategories } from '../services/categories.service';
 
 import { AnimatedPressable } from '../components/atoms/AnimatedPressable';
+import { AppAlertModal } from '../components/molecules/AppAlertModal';
 
 import { colors } from '../theme/colors';
 
@@ -53,6 +53,8 @@ export function TransactionDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [deleting, setDeleting] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const loadDetail = useCallback(async () => {
         try {
@@ -83,44 +85,40 @@ export function TransactionDetailScreen() {
         }
     }, [transactionId]);
 
+
     function handleDelete() {
         if (!transaction || deleting) {
             return;
         }
 
-        Alert.alert(
-            'Eliminar movimiento',
-            '¿Estás seguro de que deseas eliminar este movimiento? Esta acción no se puede deshacer.',
-            [
-                {
-                    text: 'Cancelar',
-                    style: 'cancel',
-                },
-                {
-                    text: 'Eliminar',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            setDeleting(true);
-
-                            await deleteTransaction(transaction.id);
-
-                            navigation.goBack();
-                        } catch (err) {
-                            Alert.alert(
-                                'Error',
-                                err instanceof Error
-                                    ? err.message
-                                    : 'No se pudo eliminar el movimiento.',
-                            );
-                        } finally {
-                            setDeleting(false);
-                        }
-                    },
-                },
-            ],
-        );
+        setShowDeleteModal(true);
     }
+
+    async function confirmDelete() {
+        if (!transaction || deleting) {
+            return;
+        }
+
+        try {
+            setDeleting(true);
+
+            await deleteTransaction(transaction.id);
+
+            setShowDeleteModal(false);
+            navigation.goBack();
+        } catch (err) {
+            setShowDeleteModal(false);
+
+            setDeleteError(
+                err instanceof Error
+                    ? err.message
+                    : 'No se pudo eliminar el movimiento.',
+            );
+        } finally {
+            setDeleting(false);
+        }
+    }
+
 
     useFocusEffect(
         useCallback(() => {
@@ -250,6 +248,28 @@ export function TransactionDetailScreen() {
 
                 </ScrollView>
             ) : null}
+
+            <AppAlertModal
+                visible={showDeleteModal}
+                type="confirm"
+                title="¿Eliminar movimiento?"
+                message="¿Estás seguro de que deseas eliminar este movimiento? Esta acción no se puede deshacer."
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                loading={deleting}
+                onConfirm={() => void confirmDelete()}
+                onCancel={() => setShowDeleteModal(false)}
+            />
+
+            <AppAlertModal
+                visible={deleteError !== null}
+                type="error"
+                title="No se pudo eliminar"
+                message={deleteError ?? ''}
+                confirmText="Entendido"
+                onConfirm={() => setDeleteError(null)}
+                onCancel={() => setDeleteError(null)}
+            />
         </SafeAreaView>
     );
 }

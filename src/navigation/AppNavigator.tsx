@@ -19,6 +19,10 @@ import { TransactionDetailScreen } from '../screens/TransactionDetailScreen';
 import { CreateTransactionScreen } from '../screens/CreateTransactionScreen';
 import { EditTransactionScreen } from '../screens/EditTransactionScreen';
 import { SummaryScreen } from '../screens/SummaryScreen';
+import { SavingsGoalsScreen } from '../screens/SavingsGoalsScreen';
+import { CreateSavingsGoalScreen } from '../screens/CreateSavingsGoalScreen';
+import { SavingsGoalDetailScreen } from '../screens/SavingsGoalDetailScreen';
+import { EditSavingsGoalScreen } from '../screens/EditSavingsGoalScreen';
 
 import { colors } from '../theme/colors';
 
@@ -31,6 +35,18 @@ export type RootTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: undefined;
+
+  SavingsGoals: undefined;
+
+  CreateSavingsGoal: undefined;
+
+  SavingsGoalDetail: {
+    goalId: string;
+  };
+
+  EditSavingsGoal: {
+    goalId: string;
+  }
 
   TransactionDetail: {
     transactionId: string;
@@ -134,6 +150,22 @@ export function AppNavigator() {
           <Stack.Screen
             name="EditTransaction"
             component={EditTransactionScreen}
+          />
+          <Stack.Screen
+            name="SavingsGoals"
+            component={SavingsGoalsScreen}
+          />
+          <Stack.Screen
+            name="CreateSavingsGoal"
+            component={CreateSavingsGoalScreen}
+          />
+          <Stack.Screen
+            name="SavingsGoalDetail"
+            component={SavingsGoalDetailScreen}
+          />
+          <Stack.Screen
+            name="EditSavingsGoal"
+            component={EditSavingsGoalScreen}
           />
         </Stack.Navigator>
       </NavigationContainer>
