@@ -14,6 +14,7 @@ import notifee, {
   AndroidImportance,
   AndroidVisibility,
 } from '@notifee/react-native';
+
 import { colors } from '../theme/colors';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,6 +30,14 @@ import { RecentTransactions } from '../components/organisms/RecentTransactions';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getSavingsBalanceSummary } from '../services/savings.service';
 import type { SavingsBalanceSummary } from '../types/savings.types';
+import { BreakevenCard } from '../components/atoms/BreakevenCard';
+import { BreakevenCalculatorModal } from '../components/molecules/BreakevenCalculatorModal';
+import {
+  getBreakevenConfig,
+  saveBreakevenConfig,
+  evaluateDailyStatus,
+} from '../services/breakeven.service';
+import type { BreakevenConfig } from '../types/breakeven.types';
 
 export function HomeScreen() {
   const navigation =
@@ -44,6 +53,13 @@ export function HomeScreen() {
   const metricsAnimation = useRef(new Animated.Value(0)).current;
   const [savingsBalance, setSavingsBalance] =
     useState<SavingsBalanceSummary | null>(null);
+  const [breakevenConfig, setBreakevenConfig] =
+    useState<BreakevenConfig | null>(null);
+  const [isBreakevenModalVisible, setIsBreakevenModalVisible] = useState(false);
+  const loadBreakevenData = async () => {
+    const config = await getBreakevenConfig();
+    setBreakevenConfig(config);
+  };
 
   useEffect(() => {
     if (loading) {
@@ -152,7 +168,7 @@ export function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       void loadData();
-
+      loadBreakevenData();
       return () => {
         requestIdRef.current += 1;
       };
@@ -347,7 +363,16 @@ export function HomeScreen() {
             </View>
           )}
         </Animated.View>
-
+        {breakevenConfig && (
+          <BreakevenCard
+            config={breakevenConfig}
+            status={evaluateDailyStatus(transactions, breakevenConfig)}
+            onPressConfigure={() => {
+              console.log('Abriendo modal de punto de equilibrio...'); // <-- Añade esto para probar en consola
+              setIsBreakevenModalVisible(true); // <-- Esto es lo que abre el modal
+            }}
+          />
+        )}
         <TouchableOpacity
           style={styles.savingsAccess}
           activeOpacity={0.8}
@@ -412,6 +437,18 @@ export function HomeScreen() {
         </View>
 
         <RecentTransactions transactions={transactions} />
+
+        {breakevenConfig && (
+          <BreakevenCalculatorModal
+            visible={isBreakevenModalVisible}
+            initialConfig={breakevenConfig}
+            onClose={() => setIsBreakevenModalVisible(false)}
+            onSave={async (newConfig: BreakevenConfig) => {
+              await saveBreakevenConfig(newConfig);
+              setBreakevenConfig(newConfig);
+            }}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
