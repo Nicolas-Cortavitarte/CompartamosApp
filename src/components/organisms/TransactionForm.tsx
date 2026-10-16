@@ -17,7 +17,10 @@ import type {
 } from '../../types/transactions.types';
 
 import { getCategories } from '../../services/categories.service';
-import { createTransaction, updateTransaction } from '../../services/transactions.service';
+import {
+  createTransaction,
+  updateTransaction,
+} from '../../services/transactions.service';
 
 import { TransactionTypeButton } from '../atoms/TransactionTypeButton';
 import { TransactionAmountInput } from '../atoms/TransactionAmountInput';
@@ -25,7 +28,7 @@ import { TransactionCategorySelect } from '../molecules/TransactionCategorySelec
 import { TransactionDatePicker } from '../molecules/TransactionDatePicker';
 import { TransactionSuccessModal } from '../molecules/TransactionSuccessModal';
 import { AnimatedPressable } from '../atoms/AnimatedPressable';
-
+import { triggerSmartVoiceNotification } from '../../services/notificationService';
 interface TransactionFormProps {
   transaction?: Transaction;
   onCreated?: () => void;
@@ -45,9 +48,7 @@ export function TransactionForm({
     transaction ? String(transaction.amount) : '',
   );
 
-  const [categoryId, setCategoryId] = useState(
-    transaction?.category_id ?? '',
-  );
+  const [categoryId, setCategoryId] = useState(transaction?.category_id ?? '');
 
   const [description, setDescription] = useState(
     transaction?.description ?? '',
@@ -62,9 +63,7 @@ export function TransactionForm({
       return new Date();
     }
 
-    const [year, month, day] = transaction.date
-      .split('-')
-      .map(Number);
+    const [year, month, day] = transaction.date.split('-').map(Number);
 
     return new Date(year, month - 1, day);
   });
@@ -167,6 +166,30 @@ export function TransactionForm({
       } else {
         await createTransaction(transactionData);
 
+        // 🔊 LÓGICA REAL DE VOZ Y NOTIFICACIÓN DINÁMICA
+        if (type === 'EXPENSE' && numericAmount >= 200) {
+          // Egreso Fuerte / Alerta de Presupuesto
+          triggerSmartVoiceNotification(
+            '⚠️ Alerta de Presupuesto',
+            `Egreso elevado: S/ ${numericAmount.toFixed(2)}`,
+            `¡Atención! Has registrado un egreso elevado de ${numericAmount} soles. Revisa tu presupuesto personal.`,
+          );
+        } else if (type === 'EXPENSE') {
+          // Egreso Normal
+          triggerSmartVoiceNotification(
+            '💸 Gasto Registrado',
+            `Gasto: S/ ${numericAmount.toFixed(2)}`,
+            '',
+          );
+        } else if (type === 'INCOME') {
+          // Ingreso
+          triggerSmartVoiceNotification(
+            '💰 Ingreso Registrado',
+            `Ingreso: S/ ${numericAmount.toFixed(2)}`,
+            `¡Excelente! Se sumaron ${numericAmount} soles a tu balance personal.`,
+          );
+        }
+
         setAmount('');
         setCategoryId('');
         setDescription('');
@@ -179,8 +202,8 @@ export function TransactionForm({
         err instanceof Error
           ? err.message
           : transaction
-            ? 'No se pudo actualizar el movimiento.'
-            : 'No se pudo registrar el movimiento.',
+          ? 'No se pudo actualizar el movimiento.'
+          : 'No se pudo registrar el movimiento.',
       );
     } finally {
       setSaving(false);
@@ -222,10 +245,7 @@ export function TransactionForm({
           />
         </View>
 
-        <TransactionAmountInput
-          value={amount}
-          onChangeText={setAmount}
-        />
+        <TransactionAmountInput value={amount} onChangeText={setAmount} />
 
         {loadingCategories ? (
           <ActivityIndicator color={colors.primary} />
@@ -244,10 +264,7 @@ export function TransactionForm({
           />
         )}
 
-        <TransactionDatePicker
-          value={date}
-          onChange={setDate}
-        />
+        <TransactionDatePicker value={date} onChange={setDate} />
 
         <View style={styles.descriptionHeader}>
           <Text style={styles.label}>Descripción</Text>
@@ -265,28 +282,28 @@ export function TransactionForm({
           numberOfLines={3}
         />
 
-        {error ? (
-          <Text style={styles.error}>{error}</Text>
-        ) : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <AnimatedPressable
           onPress={handleSubmit}
-          disabled={saving || loadingCategories || filteredCategories.length === 0}
+          disabled={
+            saving || loadingCategories || filteredCategories.length === 0
+          }
           style={[
             styles.saveButton,
             (saving || loadingCategories || filteredCategories.length === 0) &&
-            styles.saveButtonDisabled,
+              styles.saveButtonDisabled,
           ]}
         >
           {saving ? (
             <ActivityIndicator color={colors.surface} />
           ) : (
-              <View style={styles.saveButtonContent}>
-                <Text style={styles.saveButtonIcon}>✓</Text>
-                <Text style={styles.saveButtonText}>
-                  {isEditing ? 'Guardar cambios' : 'Guardar movimiento'}
-                </Text>
-              </View>
+            <View style={styles.saveButtonContent}>
+              <Text style={styles.saveButtonIcon}>✓</Text>
+              <Text style={styles.saveButtonText}>
+                {isEditing ? 'Guardar cambios' : 'Guardar movimiento'}
+              </Text>
+            </View>
           )}
         </AnimatedPressable>
         <Text style={styles.footerHelper}>

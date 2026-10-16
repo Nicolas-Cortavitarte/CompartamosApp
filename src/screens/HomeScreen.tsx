@@ -8,8 +8,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
-  AccessibilityInfo
+  AccessibilityInfo,
 } from 'react-native';
+import notifee, {
+  AndroidImportance,
+  AndroidVisibility,
+} from '@notifee/react-native';
 import { colors } from '../theme/colors';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,7 +29,6 @@ import { RecentTransactions } from '../components/organisms/RecentTransactions';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getSavingsBalanceSummary } from '../services/savings.service';
 import type { SavingsBalanceSummary } from '../types/savings.types';
-
 
 export function HomeScreen() {
   const navigation =
@@ -51,8 +54,7 @@ export function HomeScreen() {
     let animation: Animated.CompositeAnimation | undefined;
 
     const startAnimation = async () => {
-      const reduceMotion =
-        await AccessibilityInfo.isReduceMotionEnabled();
+      const reduceMotion = await AccessibilityInfo.isReduceMotionEnabled();
 
       if (cancelled) {
         return;
@@ -91,13 +93,10 @@ export function HomeScreen() {
     };
   }, [loading, balanceAnimation, metricsAnimation]);
 
-
-
   const loadData = useCallback(async () => {
     const requestId = ++requestIdRef.current;
 
-    const isLatestRequest = () =>
-      requestId === requestIdRef.current;
+    const isLatestRequest = () => requestId === requestIdRef.current;
 
     setError(null);
 
@@ -111,9 +110,7 @@ export function HomeScreen() {
       setTransactions(transactionsData);
 
       try {
-        const balanceData = await getSavingsBalanceSummary(
-          transactionsData,
-        );
+        const balanceData = await getSavingsBalanceSummary(transactionsData);
 
         if (!isLatestRequest()) {
           return;
@@ -125,10 +122,7 @@ export function HomeScreen() {
           return;
         }
 
-        console.error(
-          'Error al cargar el balance de ahorro:',
-          savingsError,
-        );
+        console.error('Error al cargar el balance de ahorro:', savingsError);
 
         setSavingsBalance(null);
 
@@ -141,10 +135,7 @@ export function HomeScreen() {
         return;
       }
 
-      console.error(
-        'Error al cargar las transacciones:',
-        transactionsError,
-      );
+      console.error('Error al cargar las transacciones:', transactionsError);
 
       setError(
         'No pudimos actualizar tus movimientos. Comprueba tu conexión e inténtalo nuevamente.',
@@ -186,6 +177,58 @@ export function HomeScreen() {
   const expenseRatio = totalIncome > 0 ? (totalExpense / totalIncome) * 100 : 0;
   const isHighExpense = totalIncome > 0 && expenseRatio >= 80;
 
+  useEffect(() => {
+    async function showSmartInsightNotification() {
+      try {
+        await notifee.requestPermission();
+        const channelId = await notifee.createChannel({
+          id: 'important_channel',
+          name: 'Alertas Importantes',
+          importance: AndroidImportance.HIGH, // <--- Esto hace que aparezca en pantalla flotando
+          sound: 'default',
+        });
+
+        // Evaluación dinámica basada en los datos reales del negocio
+        let title = '💡 Diagnóstico Financiero';
+        let body = 'Tus ingresos y gastos están sincronizados.';
+
+        if (totalIncome === 0 && totalExpense > 0) {
+          title = '⚠️ Sin ingresos registrados';
+          body =
+            'Tienes egresos registrados pero aún no ingresas ventas este mes.';
+        } else if (isHighExpense) {
+          title = '⚠️ Alerta de Gastos Elevados';
+          body = `Tus egresos representan el ${Math.round(
+            expenseRatio,
+          )}% de tus ingresos. Vigila tu presupuesto.`;
+        } else if (totalIncome > 0) {
+          title = '✅ Salud Financiera Bajo Control';
+          body = `¡Buen trabajo! Tus gastos se mantienen en un ${Math.round(
+            expenseRatio,
+          )}% de tus ingresos.`;
+        }
+
+        await notifee.displayNotification({
+          title,
+          body,
+          android: {
+            channelId,
+            importance: AndroidImportance.HIGH,
+            visibility: AndroidVisibility.PUBLIC,
+            smallIcon: 'ic_launcher', // cambiar icono
+          },
+        });
+      } catch (e) {
+        console.log('Error en notificación de insight', e);
+      }
+    }
+
+    // Se dispara únicamente cuando los datos terminaron de cargar
+    if (hasLoaded) {
+      void showSmartInsightNotification();
+    }
+  }, [hasLoaded, isHighExpense, totalIncome, totalExpense, expenseRatio]);
+
   const insightTitle = isHighExpense
     ? 'Tus gastos están aumentando'
     : '¡Buen control financiero!';
@@ -194,10 +237,10 @@ export function HomeScreen() {
     totalIncome === 0
       ? 'Aún no registras ingresos este mes. Comienza a registrar tus movimientos.'
       : isHighExpense
-        ? `Tus egresos representan el ${Math.round(
+      ? `Tus egresos representan el ${Math.round(
           expenseRatio,
         )}% de tus ingresos. Vigila tus gastos de cerca.`
-        : `Tus egresos están bajo control (${Math.round(
+      : `Tus egresos están bajo control (${Math.round(
           expenseRatio,
         )}% de tus ingresos).`;
 
@@ -231,10 +274,7 @@ export function HomeScreen() {
   }
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={['top', 'bottom']}
-    >
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -261,18 +301,15 @@ export function HomeScreen() {
               No pudimos actualizar toda tu información
             </Text>
 
-            <Text style={styles.errorMessage}>
-              {error}
-            </Text>
+            <Text style={styles.errorMessage}>{error}</Text>
 
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => void loadData()}
               accessibilityRole="button"
-              accessibilityLabel="Reintentar carga de información">
-              <Text style={styles.retryButtonText}>
-                Reintentar
-              </Text>
+              accessibilityLabel="Reintentar carga de información"
+            >
+              <Text style={styles.retryButtonText}>Reintentar</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -291,7 +328,6 @@ export function HomeScreen() {
             ],
           }}
         >
-
           {savingsBalance ? (
             <BalanceCard
               balance={savingsBalance.available_balance}
@@ -305,24 +341,22 @@ export function HomeScreen() {
               </Text>
 
               <Text style={styles.balanceUnavailableText}>
-                No pudimos verificar cuánto dinero tienes
-                reservado en tus metas.
+                No pudimos verificar cuánto dinero tienes reservado en tus
+                metas.
               </Text>
             </View>
           )}
         </Animated.View>
-
 
         <TouchableOpacity
           style={styles.savingsAccess}
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Ir a mis metas de ahorro"
-          onPress={() => navigation.navigate('SavingsGoals')}>
+          onPress={() => navigation.navigate('SavingsGoals')}
+        >
           <View style={styles.savingsAccessText}>
-            <Text style={styles.savingsAccessTitle}>
-              Mis metas de ahorro
-            </Text>
+            <Text style={styles.savingsAccessTitle}>Mis metas de ahorro</Text>
             <Text style={styles.savingsAccessSubtitle}>
               Separa dinero para alcanzar tus objetivos
             </Text>
@@ -330,7 +364,6 @@ export function HomeScreen() {
 
           <Text style={styles.savingsAccessArrow}>›</Text>
         </TouchableOpacity>
-
 
         {/* Tarjetas de Ingresos y Gastos */}
         <Animated.View
