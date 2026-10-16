@@ -78,20 +78,20 @@ function MainTabs() {
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabLabel,
         tabBarIcon: ({ focused }) => {
-          const isAdd = route.name === 'Registrar';
+          const highlighted = route.name === 'Registrar' && focused;
 
           return (
             <View
               style={[
                 styles.iconContainer,
-                isAdd && styles.addIconContainer,
+                highlighted && styles.activeIconContainer,
               ]}
             >
               <Text
                 style={[
                   styles.icon,
                   {
-                    color: isAdd
+                    color: highlighted
                       ? colors.surface
                       : focused
                         ? colors.primary
@@ -193,9 +193,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addIconContainer: {
+  activeIconContainer: {
     backgroundColor: colors.primary,
     borderRadius: 12,
+    width: 34, 
+    height: 34,
   },
   icon: {
     fontSize: 26,

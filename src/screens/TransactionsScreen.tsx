@@ -10,7 +10,7 @@ export function TransactionsScreen() {
   const handleCohesiveAlert = () => {
     triggerSmartVoiceNotification(
       '⚠️ Alerta de Presupuesto',
-      'Registraste un egreso elevado en Comida / Salidas.',
+      'Registraste un egreso elevado.',
       '¡Atención! Has registrado un egreso elevado de doscientos soles en entretenimiento. Te queda el treinta por ciento de tu presupuesto mensual.',
     );
   };
@@ -23,29 +23,7 @@ export function TransactionsScreen() {
         backgroundColor: colors.background,
       }}
     >
-      {/* Botón de prueba para la notificación con voz */}
-      <TouchableOpacity style={styles.button} onPress={handleCohesiveAlert}>
-        <Text style={styles.buttonText}>
-          📢 Probar Alerta Inteligente con Voz
-        </Text>
-      </TouchableOpacity>
-
       <TransactionList />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    backgroundColor: '#3b82f6',
-    padding: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginVertical: 10,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
-});

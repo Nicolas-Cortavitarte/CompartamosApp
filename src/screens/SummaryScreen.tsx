@@ -16,6 +16,7 @@ import { getTransactions } from '../services/transactions.service';
 import { getCategories } from '../services/categories.service';
 import type { Transaction, Category } from '../types/transactions.types';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { calcularRacha, describirRacha } from '../utils/streak.utils';
 
 export function SummaryScreen() {
 
@@ -135,6 +136,10 @@ export function SummaryScreen() {
   // Categoría principal (la de mayor gasto)
   const topCategory = categoryTotals.length > 0 ? categoryTotals[0] : null;
 
+  // La racha usa TODAS las transacciones, no solo las del mes seleccionado
+const streak = calcularRacha(transactions);
+const streakText = describirRacha(streak);
+
   if (loading && !refreshing) {
     return (
       <View style={styles.center}>
@@ -171,9 +176,17 @@ export function SummaryScreen() {
           <Text style={styles.subtitle}>Entiende cómo se mueve tu dinero.</Text>
         </View>
 
+        <View style={styles.streakCard}>
+          <Text style={styles.streakEmoji}>{streak.current > 0 ? '🔥' : '✨'}</Text>
+          <View style={styles.streakTextBox}>
+            <Text style={styles.streakTitle}>{streakText.title}</Text>
+            <Text style={styles.streakSubtitle}>{streakText.subtitle}</Text>
+          </View>
+        </View>
+
         {/* Selector de periodo interactiv con menú */}
         <TouchableOpacity
-          style={styles.periodSelector}
+          style={styles.periodSelector} 
           onPress={() => setIsMonthPickerVisible(!isMonthPickerVisible)}
         >
           <View style={styles.periodRow}>
@@ -676,5 +689,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#BE185D',
+  },
+  streakCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.warningBackground,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  streakEmoji: {
+    fontSize: 28,
+  },
+  streakTextBox: {
+    flex: 1,
+  },
+  streakTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  streakSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });
