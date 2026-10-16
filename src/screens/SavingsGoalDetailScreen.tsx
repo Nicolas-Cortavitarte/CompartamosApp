@@ -438,7 +438,7 @@ export function SavingsGoalDetailScreen() {
                                             });
                                         }}>
                                         <Text style={styles.optionsItemText}>
-                                            ✎  Editar meta
+                                            Editar meta
                                         </Text>
                                     </AnimatedPressable>
 
@@ -455,7 +455,7 @@ export function SavingsGoalDetailScreen() {
                                             }, 350);
                                         }}>
                                         <Text style={styles.optionsDeleteText}>
-                                            🗑  Eliminar meta
+                                            Eliminar meta
                                         </Text>
                                     </AnimatedPressable>
                                 </View>

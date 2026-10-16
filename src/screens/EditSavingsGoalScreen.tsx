@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useNavigation,
   useRoute,
@@ -27,17 +27,22 @@ import type {
   NativeStackNavigationProp,
 } from '@react-navigation/native-stack';
 
-import type {RootStackParamList} from '../navigation/AppNavigator';
-import type {SavingsGoalWithProgress} from '../types/savings.types';
+import type { RootStackParamList } from '../navigation/AppNavigator';
+import type { SavingsGoalWithProgress } from '../types/savings.types';
 
-import {colors} from '../theme/colors';
+import { colors } from '../theme/colors';
 import {
   getSavingsGoalsWithProgress,
   updateSavingsGoal,
 } from '../services/savings.service';
 
-import {AnimatedPressable} from '../components/atoms/AnimatedPressable';
-import {SavingsDeadlinePicker} from '../components/molecules/SavingsDeadlinePicker';
+import {
+  AppAlertModal,
+  type AppAlertType,
+} from '../components/molecules/AppAlertModal';
+
+import { AnimatedPressable } from '../components/atoms/AnimatedPressable';
+import { SavingsDeadlinePicker } from '../components/molecules/SavingsDeadlinePicker';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type EditRouteProp = RouteProp<RootStackParamList, 'EditSavingsGoal'>;
@@ -45,7 +50,7 @@ type EditRouteProp = RouteProp<RootStackParamList, 'EditSavingsGoal'>;
 export function EditSavingsGoalScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<EditRouteProp>();
-  const {goalId} = route.params;
+  const { goalId } = route.params;
 
   const [goal, setGoal] = useState<SavingsGoalWithProgress | null>(null);
 
@@ -56,6 +61,31 @@ export function EditSavingsGoalScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [appAlert, setAppAlert] = useState<{
+    type: AppAlertType;
+    title: string;
+    message: string;
+  } | null>(null);
+
+  const [updated, setUpdated] = useState(false);
+  const [returnOnClose, setReturnOnClose] = useState(false);
+
+  const showAlert = (
+    type: AppAlertType,
+    title: string,
+    message: string,
+  ) => {
+    setAppAlert({ type, title, message });
+  };
+
+  const closeAlert = () => {
+    setAppAlert(null);
+
+    if (updated || returnOnClose) {
+      navigation.goBack();
+    }
+  };
+
   const loadGoal = useCallback(async () => {
     try {
       setLoading(true);
@@ -64,8 +94,14 @@ export function EditSavingsGoalScreen() {
       const currentGoal = goals.find(item => item.id === goalId);
 
       if (!currentGoal) {
-        Alert.alert('Meta no encontrada', 'No pudimos encontrar esta meta.');
-        navigation.goBack();
+        setReturnOnClose(true);
+
+        showAlert(
+          'warning',
+          'Meta no encontrada',
+          'No pudimos encontrar esta meta.',
+        );
+
         return;
       }
 
@@ -76,9 +112,12 @@ export function EditSavingsGoalScreen() {
     } catch (error) {
       console.error('Error al cargar meta:', error);
 
-      Alert.alert(
+      showAlert(
+        'error',
         'No se pudo cargar la meta',
-        error instanceof Error ? error.message : 'Intenta nuevamente.',
+        error instanceof Error
+          ? error.message
+          : 'Intenta nuevamente.',
       );
     } finally {
       setLoading(false);
@@ -92,16 +131,18 @@ export function EditSavingsGoalScreen() {
   );
 
   const handleSave = async () => {
-    if (saving || !goal) {
-      return;
-    }
+    if (saving || !goal) return;
 
     const trimmedName = name.trim();
     const normalizedAmount = targetAmount.trim().replace(',', '.');
     const amount = Number(normalizedAmount);
 
     if (!trimmedName) {
-      Alert.alert('Campo obligatorio', 'Ingresa un nombre para tu meta.');
+      showAlert(
+        'warning',
+        'Campo obligatorio',
+        'Ingresa un nombre para tu meta.',
+      );
       return;
     }
 
@@ -111,15 +152,20 @@ export function EditSavingsGoalScreen() {
       !Number.isFinite(amount) ||
       amount <= 0
     ) {
-      Alert.alert(
+      showAlert(
+        'warning',
         'Monto inválido',
         'Ingresa un monto positivo con máximo dos decimales.',
       );
       return;
     }
 
-    if (Math.round(amount * 100) < Math.round(goal.saved_amount * 100)) {
-      Alert.alert(
+    if (
+      Math.round(amount * 100) <
+      Math.round(goal.saved_amount * 100)
+    ) {
+      showAlert(
+        'warning',
         'Monto objetivo inválido',
         'El monto objetivo no puede ser menor que el dinero ahorrado.',
       );
@@ -135,24 +181,46 @@ export function EditSavingsGoalScreen() {
         deadline,
       });
 
-      navigation.goBack();
+      setUpdated(true);
+
+      showAlert(
+        'success',
+        '¡Meta actualizada!',
+        'Los cambios de tu meta se guardaron correctamente.',
+      );
     } catch (error) {
       console.error('Error al editar meta:', error);
 
-      Alert.alert(
+      showAlert(
+        'error',
         'No se pudo actualizar la meta',
-        error instanceof Error ? error.message : 'Intenta nuevamente.',
+        error instanceof Error
+          ? error.message
+          : 'Intenta nuevamente.',
       );
     } finally {
       setSaving(false);
     }
   };
 
+  const alertModal = (
+    <AppAlertModal
+      visible={appAlert !== null}
+      type={appAlert?.type ?? 'warning'}
+      title={appAlert?.title ?? ''}
+      message={appAlert?.message ?? ''}
+      confirmText="Entendido"
+      onConfirm={closeAlert}
+      onCancel={closeAlert}
+    />
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centered} edges={['top', 'bottom']}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Cargando meta...</Text>
+        {alertModal}
       </SafeAreaView>
     );
   }
@@ -166,6 +234,8 @@ export function EditSavingsGoalScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backLink}>Volver</Text>
         </TouchableOpacity>
+
+        { alertModal }
       </SafeAreaView>
     );
   }
@@ -245,6 +315,8 @@ export function EditSavingsGoalScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {alertModal}
     </SafeAreaView>
   );
 }

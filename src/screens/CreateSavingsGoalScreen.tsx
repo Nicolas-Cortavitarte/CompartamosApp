@@ -22,6 +22,11 @@ import { createSavingsGoal } from '../services/savings.service';
 import { AnimatedPressable } from '../components/atoms/AnimatedPressable';
 import { SavingsDeadlinePicker } from '../components/molecules/SavingsDeadlinePicker';
 
+import {
+    AppAlertModal,
+    type AppAlertType,
+} from '../components/molecules/AppAlertModal';
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export function CreateSavingsGoalScreen() {
@@ -32,17 +37,43 @@ export function CreateSavingsGoalScreen() {
     const [deadline, setDeadline] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
-    const handleCreate = async () => {
-        if (saving) {
-            return;
+    const [appAlert, setAppAlert] = useState<{
+        type: AppAlertType;
+        title: string;
+        message: string;
+    } | null>(null);
+
+    const [created, setCreated] = useState(false);
+
+    const showAlert = (
+        type: AppAlertType,
+        title: string,
+        message: string,
+    ) => {
+        setAppAlert({ type, title, message });
+    };
+
+    const closeAlert = () => {
+        setAppAlert(null);
+
+        if (created) {
+            navigation.goBack();
         }
+    };
+
+    const handleCreate = async () => {
+        if (saving) return;
 
         const trimmedName = name.trim();
         const normalizedAmount = targetAmount.trim().replace(',', '.');
         const amount = Number(normalizedAmount);
 
         if (!trimmedName) {
-            Alert.alert('Campo obligatorio', 'Ingresa un nombre para tu meta.');
+            showAlert(
+                'warning',
+                'Campo obligatorio',
+                'Ingresa un nombre para tu meta.',
+            );
             return;
         }
 
@@ -52,7 +83,8 @@ export function CreateSavingsGoalScreen() {
             !Number.isFinite(amount) ||
             amount <= 0
         ) {
-            Alert.alert(
+            showAlert(
+                'warning',
                 'Monto inválido',
                 'Ingresa un monto positivo con máximo dos decimales.',
             );
@@ -68,11 +100,18 @@ export function CreateSavingsGoalScreen() {
                 deadline,
             });
 
-            navigation.goBack();
+            setCreated(true);
+
+            showAlert(
+                'success',
+                '¡Meta creada!',
+                'Tu nueva meta de ahorro se creó correctamente.',
+            );
         } catch (error) {
             console.error('Error al crear meta:', error);
 
-            Alert.alert(
+            showAlert(
+                'error',
                 'No se pudo crear la meta',
                 error instanceof Error
                     ? error.message
@@ -152,6 +191,15 @@ export function CreateSavingsGoalScreen() {
                     </AnimatedPressable>
                 </ScrollView>
             </KeyboardAvoidingView>
+            <AppAlertModal
+                visible={appAlert !== null}
+                type={appAlert?.type ?? 'warning'}
+                title={appAlert?.title ?? ''}
+                message={appAlert?.message ?? ''}
+                confirmText="Entendido"
+                onConfirm={closeAlert}
+                onCancel={closeAlert}
+            />
         </SafeAreaView>
     );
 }

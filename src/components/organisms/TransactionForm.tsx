@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  Platform,
 } from 'react-native';
 
 import { colors } from '../../theme/colors';
@@ -21,6 +21,11 @@ import {
   createTransaction,
   updateTransaction,
 } from '../../services/transactions.service';
+
+import {
+  AppAlertModal,
+  type AppAlertType,
+} from '../molecules/AppAlertModal';
 
 import { TransactionTypeButton } from '../atoms/TransactionTypeButton';
 import { TransactionAmountInput } from '../atoms/TransactionAmountInput';
@@ -58,6 +63,21 @@ export function TransactionForm({
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const [appAlert, setAppAlert] = useState<{
+    type: AppAlertType;
+    title: string;
+    message: string;
+  } | null>(null);
+
+  const showAlert = (
+    type: AppAlertType,
+    title: string,
+    message: string,
+  ) => {
+    setAppAlert({ type, title, message });
+  };
+
   const [date, setDate] = useState<Date>(() => {
     if (!transaction) {
       return new Date();
@@ -134,12 +154,20 @@ export function TransactionForm({
       !Number.isFinite(numericAmount) ||
       numericAmount <= 0
     ) {
-      setError('Ingresa un monto válido mayor que cero.');
+      showAlert(
+        'warning',
+        'Monto inválido',
+        'Ingresa un monto válido mayor que cero.',
+      );
       return;
     }
 
     if (!categoryId) {
-      setError('Selecciona una categoría.');
+      showAlert(
+        'warning',
+        'Categoría requerida',
+        'Selecciona una categoría antes de guardar.',
+      );
       return;
     }
 
@@ -198,12 +226,14 @@ export function TransactionForm({
 
       setShowSuccess(true);
     } catch (err) {
-      setError(
+      showAlert(
+        'error',
+        isEditing
+          ? 'No se pudo actualizar el movimiento'
+          : 'No se pudo registrar el movimiento',
         err instanceof Error
           ? err.message
-          : transaction
-          ? 'No se pudo actualizar el movimiento.'
-          : 'No se pudo registrar el movimiento.',
+          : 'Intenta nuevamente.',
       );
     } finally {
       setSaving(false);
@@ -212,6 +242,16 @@ export function TransactionForm({
 
   return (
     <>
+      <AppAlertModal
+        visible={appAlert !== null}
+        type={appAlert?.type ?? 'warning'}
+        title={appAlert?.title ?? ''}
+        message={appAlert?.message ?? ''}
+        confirmText="Entendido"
+        onConfirm={() => setAppAlert(null)}
+        onCancel={() => setAppAlert(null)}
+      />
+
       <TransactionSuccessModal
         visible={showSuccess}
         isEditing={isEditing}
@@ -222,6 +262,8 @@ export function TransactionForm({
         style={styles.container}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
         <Text style={styles.title}>
           {isEditing ? 'Editar movimiento' : 'Nuevo movimiento'}
@@ -292,7 +334,7 @@ export function TransactionForm({
           style={[
             styles.saveButton,
             (saving || loadingCategories || filteredCategories.length === 0) &&
-              styles.saveButtonDisabled,
+            styles.saveButtonDisabled,
           ]}
         >
           {saving ? (

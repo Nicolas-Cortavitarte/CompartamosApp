@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { useFocusEffect } from '@react-navigation/native';
+import LottieView from 'lottie-react-native';
 
 import { colors } from '../theme/colors';
 
@@ -180,7 +181,12 @@ export function SavingsGoalsScreen() {
 
                 {goals.length === 0 ? (
                     <View style={styles.emptyCard}>
-                        <Text style={styles.emptyIcon}>◎</Text>
+                        <LottieView
+                            source={require('../assets/animations/Piggy-bank.json')}
+                            autoPlay
+                            loop
+                            style={styles.emptyAnimation}
+                        />
 
                         <Text style={styles.emptyTitle}>
                             Aún no tienes metas de ahorro
@@ -460,5 +466,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: colors.primary,
         marginTop: 12,
+    },
+    emptyAnimation: {
+        width: 150,
+        height: 150,
+        marginBottom: 12,
     },
 });
